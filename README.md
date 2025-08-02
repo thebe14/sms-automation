@@ -1,9 +1,9 @@
 # SMS Jira Automations
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/thebe14/sms-script-listeners?color=darkcyan&label=Release&include_prereleases)
-![GitHub issues](https://img.shields.io/github/issues/thebe14/sms-script-listeners?label=Issues)
-![GitHub issue custom search in repo](https://img.shields.io/github/issues-search/thebe14/sms-script-listeners?label=Bugs&color=red&query=is%3Aopen%20label%3Abug)
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/thebe14/sms-automation?color=darkcyan&label=Release&include_prereleases)
+![GitHub issues](https://img.shields.io/github/issues/thebe14/sms-automation?label=Issues)
+![GitHub issue custom search in repo](https://img.shields.io/github/issues-search/thebe14/sms-automation?label=Bugs&color=red&query=is%3Aopen%20label%3Abug)
 
 This repository contains the Groovy scrips that automate the various Jira
 work types that support the entities of the processes in the Service Management

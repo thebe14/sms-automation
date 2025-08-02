@@ -1,7 +1,7 @@
 # Authors
 
-Levente Farkas <levente.farkas@egi.eu>
+Levente Farkas <thebe14@proton.me>
 
 ## Contributors
 
-[All contributors](https://github.com/EGI-Federation/egi-ims-tool/graphs/contributors)
+[All contributors](https://github.com/thebe14/sms-automation/graphs/contributors)
