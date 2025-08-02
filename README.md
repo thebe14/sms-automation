@@ -19,5 +19,5 @@ must the added to the Jira site for these Groovy scripts to function.
 > SMS Jira are either implemented with **Jira-native rules** (see the
 > _Jira Admin Settings_ of the Jira site where SMS is deployed, section
 > **System**, then navigate to _Automation/Global automation_), or
-> **Groovy scripts** for the cases where more advanced processing wass required
+> **Groovy scripts** for the cases where more advanced processing was required
 > than what was feasible to build in the Jira-native visual rule builder.
