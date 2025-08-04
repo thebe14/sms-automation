@@ -22,7 +22,7 @@ if(summary.toLowerCase().trim() == "test") {
  */
 def getUsersInGroup(groupName, logMembers = false) {
     // first, get the group Id
-    def result = get("/rest/api/2/groups/picker?query=${groupName}")
+    def result = get("/rest/api/3/groups/picker?query=${groupName}")
         .header("Content-Type", "application/json")
         .asObject(Map)
 
@@ -109,7 +109,7 @@ if(null == process || process.isEmpty()) {
 logger.info("Process: ${process}")
 
 // get custom fields
-def customFields = get("/rest/api/2/field")
+def customFields = get("/rest/api/3/field")
     .asObject(List)
     .body
     .findAll { (it as Map).custom } as List<Map>
@@ -136,8 +136,8 @@ if(null != processManager) {
     processManager = [ accountId: processManager ]
 }
 
-// update the process type, owner, manager, and stakeholders
-def result = put("/rest/api/2/issue/${issue.key}") 
+// update the Stakeholders field
+def result = put("/rest/api/3/issue/${issue.key}") 
     .header("Content-Type", "application/json")
     .body([
         fields:[

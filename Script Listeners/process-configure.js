@@ -24,9 +24,9 @@ def jiraToken = "mytoken"
  * @param users is an array of the new group members, having accountID and displayName fields
  * @returns true on success
  */
-def setUsersInGroup(groupName, users) {
+def setUsersInGroup(groupName, users, jiraUser, jiraToken) {
     // first, get the group Id
-    def result = get("/rest/api/2/groups/picker?query=${groupName}")
+    def result = get("/rest/api/3/groups/picker?query=${groupName}")
         .header("Content-Type", "application/json")
         .header("Accept", "application/json")
         .asObject(Map)
@@ -71,7 +71,7 @@ def setUsersInGroup(groupName, users) {
             def accountId = member["accountId"]
             result = delete("/rest/api/3/group/user?groupId=${groupId}&accountId=${accountId}")
                         .basicAuth(jiraUser, jiraToken)
-                        .asObject(Map)
+                        .asString()
 
             if(result.status < 200 || result.status > 204) {
                 logger.info("Could not remove user ${member["displayName"]} from group ${groupName} (${result.status})")
@@ -110,7 +110,7 @@ def customFields = get("/rest/api/2/field")
     .body
     .findAll { (it as Map).custom } as List<Map>
 
-// get field values 
+// get field values
 def processId = customFields.find { it.name == 'SMS process' }?.id?.toString()
 def processOldId = customFields.find { it.name == 'SMS process old' }?.id?.toString()
 def processCodeId = customFields.find { it.name == 'Process code' }?.id?.toString()
@@ -181,16 +181,16 @@ switch(process) {
 
 if(ownerChanged && null != processCode) {
     def processOwnerGroup = "${processCode.toLowerCase()}-process-owner"
-    setUsersInGroup(processOwnerGroup, [[ accountId: processOwner, displayName: processOwnerName ]])
+    setUsersInGroup(processOwnerGroup, [[ accountId: processOwner, displayName: processOwnerName ]], jiraUser, jiraToken)
 }
 
 if(managerChanged && null != processCode) {
     def processManagerGroup = "${processCode.toLowerCase()}-process-manager"
-    setUsersInGroup(processManagerGroup, [[ accountId: processManager, displayName: processManager ]])
+    setUsersInGroup(processManagerGroup, [[ accountId: processManager, displayName: processManagerName ]], jiraUser, jiraToken)
 }
 
 // update the process code
-def result = put("/rest/api/2/issue/${issue.key}") 
+def result = put("/rest/api/3/issue/${issue.key}") 
     .header("Content-Type", "application/json")
     .body([
         fields:[
@@ -200,7 +200,7 @@ def result = put("/rest/api/2/issue/${issue.key}")
             (processManagerOldId): processManager,
         ],
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not update ${issue.key} (${result.status})")
