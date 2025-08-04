@@ -33,6 +33,10 @@ if(null == processCode) {
 
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
+def definitionUpdatesId = customFields.find { it.name == 'Process definition updates' }?.id?.toString()
+def procedureUpdatesId = customFields.find { it.name == 'Procedure and policy updates' }?.id?.toString()
+def reportUpdatesId = customFields.find { it.name == 'Report updates' }?.id?.toString()
+def perfIndUpdatesId = customFields.find { it.name == 'Performance indicator updates' }?.id?.toString()
 
 def processOwner = issue.fields[processOwnerId]?.accountId as String
 def processManager = issue.fields[processManagerId]?.accountId as String
@@ -103,7 +107,115 @@ def result = post("/rest/api/3/issue")
                         ]
                     ]
                 ]
-            ]
+            ],
+            (definitionUpdatesId): [
+                type: "doc",
+                version: 1,
+                content: [
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "Goals",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements.",
+                        ]]
+                    ],
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "Requirements",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements.",
+                        ]]
+                    ],
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "Roles",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements.",
+                        ]]
+                    ],
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "Input & Output",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements.",
+                        ]]
+                    ],
+                ]
+            ],
+            (procedureUpdatesId): [
+                type: "doc",
+                version: 1,
+                content: [
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "PROC.NO Procedure title",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements. (Repeat as needed)",
+                        ]]
+                    ],
+                ]
+            ],
+            (reportUpdatesId): [
+                type: "doc",
+                version: 1,
+                content: [
+                    [
+                        type: "heading",
+                        attrs: [ level: 2 ],
+                        content: [[
+                            type: "text",
+                            text: "Report Type",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "Current status and need for improvements. (Repeat as needed)",
+                        ]]
+                    ],
+                ]
+            ],
         ],
         update:[
             issuelinks: [[
@@ -116,42 +228,43 @@ def result = post("/rest/api/3/issue")
     ])
     .asObject(Map)
 
-if(result.status >= 200 && result.status < 300) {
-    def newTicket = result.body as Map
-    logger.info("Created process review ${newTicket.key}")
-
-    // add a comment about the new review that has started
-    result = get('/rest/api/3/myself').asObject(Map)
-    def currentUser = result.body as Map
-    result = post("/rest/api/3/issue/${issue.key}/comment") 
-        .header("Content-Type", "application/json")
-        .body([
-            body: [
-                type: "doc",
-                version: 1,
-                content: [[
-                    type: "paragraph",
-                    content: [
-                        [
-                            type: "text",
-                            text: "A review of this process has been initiated, see ",
-                        ],
-                        [
-                            type: "text",
-                            text: "${newTicket.key}",
-                            marks: [[
-                                type: "link",
-                                attrs: [ href: "/browse/${newTicket.key}" ]
-                            ]]
-                        ]
-                    ]
-                ]]
-            ]
-        ])
-        .asObject(Map)
-
-    if(result.status < 200 || result.status > 204)
-        logger.info("Could not add comment to ${issue.key} (${result.status})")
-}
-else
+if(result.status < 200 || result.status >= 300) {
     logger.info("Could not create ${processCode} process review (${result.status})")
+    return
+}
+
+def newTicket = result.body as Map
+logger.info("Created process review ${newTicket.key}")
+
+// add a comment about the new review that has started
+result = get('/rest/api/3/myself').asObject(Map)
+def currentUser = result.body as Map
+result = post("/rest/api/3/issue/${issue.key}/comment") 
+    .header("Content-Type", "application/json")
+    .body([
+        body: [
+            type: "doc",
+            version: 1,
+            content: [[
+                type: "paragraph",
+                content: [
+                    [
+                        type: "text",
+                        text: "A review of this process has been initiated, see ",
+                    ],
+                    [
+                        type: "text",
+                        text: "${newTicket.key}",
+                        marks: [[
+                            type: "link",
+                            attrs: [ href: "/browse/${newTicket.key}" ]
+                        ]]
+                    ]
+                ]
+            ]]
+        ]
+    ])
+    .asObject(Map)
+
+if(result.status < 200 || result.status > 204)
+    logger.info("Could not add comment to ${issue.key} (${result.status})")
