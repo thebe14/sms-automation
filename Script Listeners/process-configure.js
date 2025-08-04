@@ -1,5 +1,5 @@
 // on events: IssueCreated, IssueUpdated
-// in projects: all
+// in projects: SMS
 // run as: ScriptRunner add-on user
 // conditions:
 // ['Process'].includes(issue.issueType.name)
@@ -15,7 +15,7 @@ if(summary.toLowerCase().trim() == "test") {
     return
 }
 
-def jiraUser = "sms@mydomain.org"
+def jiraUser = "myuser@mydomain.org"
 def jiraToken = "mytoken"
 
 /***
@@ -110,6 +110,7 @@ def customFields = get("/rest/api/2/field")
     .body
     .findAll { (it as Map).custom } as List<Map>
 
+// get field values 
 def processId = customFields.find { it.name == 'SMS process' }?.id?.toString()
 def processOldId = customFields.find { it.name == 'SMS process old' }?.id?.toString()
 def processCodeId = customFields.find { it.name == 'Process code' }?.id?.toString()
@@ -199,6 +200,7 @@ def result = put("/rest/api/2/issue/${issue.key}")
             (processManagerOldId): processManager,
         ],
     ])
-    .asString()
+    .asObject(Map)
 
-logger.info("Returned: ${result.status}")
+if(result.status < 200 || result.status > 204)
+    logger.info("Could not update ${issue.key} (${result.status})")

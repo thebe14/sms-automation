@@ -69,6 +69,7 @@ def getUsersInGroup(groupName, logMembers = false) {
     return ids
 }
 
+// determine value to select in field SMS process, based on the Jira project of the new issue
 def projectKey = issue.fields.project.key.toLowerCase() as String
 def processOwnerGroup = "${projectKey}-process-owner"
 def processManagerGroup = "${projectKey}-process-manager"
@@ -113,6 +114,7 @@ def customFields = get("/rest/api/2/field")
     .body
     .findAll { (it as Map).custom } as List<Map>
 
+// get field values
 def processId = customFields.find { it.name == 'SMS process' }?.id?.toString()
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
@@ -134,7 +136,7 @@ if(null != processManager) {
     processManager = [ accountId: processManager ]
 }
 
-// update the Stakeholders field
+// update the process type, owner, manager, and stakeholders
 def result = put("/rest/api/2/issue/${issue.key}") 
     .header("Content-Type", "application/json")
     .body([
@@ -145,6 +147,7 @@ def result = put("/rest/api/2/issue/${issue.key}")
             (processId): null != process ? [value: process] : null,
         ],
     ])
-    .asString()
+    .asObject(Map)
 
-logger.info("Returned: ${result.status}")
+if(result.status < 200 || result.status > 204)
+    logger.info("Could not update ${issue.key} (${result.status})")
