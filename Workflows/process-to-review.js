@@ -25,7 +25,6 @@ def customFields = get("/rest/api/3/field")
 
 // check that we have a process code
 def processCodeId = customFields.find { it.name == 'Process code' }?.id?.toString()
-
 def processCode = issue.fields[processCodeId]?.toUpperCase() as String
 if(null == processCode) {
     logger.info("No process code")
@@ -50,6 +49,61 @@ def result = post("/rest/api/3/issue")
             assignee: null != processOwner ? [ accountId: processOwner ] : null,
             (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
             (processManagerId): null != processManager ? [ accountId: processManager ] : null,
+            description: [
+                type: "doc",
+                version: 1,
+                content: [
+                    [
+                        type: "paragraph",
+                        content: [[
+                            type: "text",
+                            text: "This ticket collects findings from the process review.",
+                        ]]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [
+                            [
+                                type: "text",
+                                text: "Please refer to the ",
+                            ],
+                            [
+                                type: "text",
+                                text: "EGI Glossary",
+                                marks: [[
+                                    type: "link",
+                                    attrs: [ href: "https://wiki.egi.eu/wiki/Glossary" ]
+                                ]]
+                            ],
+                            [
+                                type: "text",
+                                text: " for the definitions of the terms used in this review.",
+                            ]
+                        ]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [
+                            [
+                                type: "text",
+                                text: "The keywords MUST (NOT), SHALL (NOT), SHOULD (NOT), REQUIRED, RECOMMENDED, MAY, and OPTIONAL in this review are to be interpreted as described in ",
+                            ],
+                            [
+                                type: "text",
+                                text: "RFC 2119",
+                                marks: [[
+                                    type: "link",
+                                    attrs: [ href: "http://tools.ietf.org/html/rfc2119" ]
+                                ]]
+                            ],
+                            [
+                                type: "text",
+                                text: ".",
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ],
         update:[
             issuelinks: [[
