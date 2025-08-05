@@ -33,13 +33,180 @@ if(null == processCode) {
 
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
-def definitionUpdatesId = customFields.find { it.name == 'Process definition updates' }?.id?.toString()
-def procedureUpdatesId = customFields.find { it.name == 'Procedure and policy updates' }?.id?.toString()
-def reportUpdatesId = customFields.find { it.name == 'Report updates' }?.id?.toString()
-def perfIndUpdatesId = customFields.find { it.name == 'Performance indicator updates' }?.id?.toString()
+def definitionUpdatesId = customFields.find { it.name == 'Process definition review and updates' }?.id?.toString()
+def procedureUpdatesId = customFields.find { it.name == 'Procedure and policy review and updates' }?.id?.toString()
+def reportUpdatesId = customFields.find { it.name == 'Report review and updates' }?.id?.toString()
+def perfIndUpdatesId = customFields.find { it.name == 'Performance indicator review and updates' }?.id?.toString()
 
 def processOwner = issue.fields[processOwnerId]?.accountId as String
 def processManager = issue.fields[processManagerId]?.accountId as String
+
+def description = [
+    type: "doc",
+    version: 1,
+    content: [
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "This ticket collects findings from the process review.",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [
+                [
+                    type: "text",
+                    text: "Please refer to the ",
+                ],
+                [
+                    type: "text",
+                    text: "EGI Glossary",
+                    marks: [[
+                        type: "link",
+                        attrs: [ href: "https://wiki.egi.eu/wiki/Glossary" ]
+                    ]]
+                ],
+                [
+                    type: "text",
+                    text: " for the definitions of the terms used in this review.",
+                ]
+            ]
+        ],
+        [
+            type: "paragraph",
+            content: [
+                [
+                    type: "text",
+                    text: "The keywords MUST (NOT), SHALL (NOT), SHOULD (NOT), REQUIRED, RECOMMENDED, MAY, and OPTIONAL in this review are to be interpreted as described in ",
+                ],
+                [
+                    type: "text",
+                    text: "RFC 2119",
+                    marks: [[
+                        type: "link",
+                        attrs: [ href: "http://tools.ietf.org/html/rfc2119" ]
+                    ]]
+                ],
+                [
+                    type: "text",
+                    text: ".",
+                ]
+            ]
+        ]
+    ]
+]
+
+def definitionUpdates = [
+    type: "doc",
+    version: 1,
+    content: [
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "Goals",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ],
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "Requirements",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ],
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "Roles",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ],
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "Input & Output",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ],
+    ]
+]
+
+def procedureUpdates = [
+    type: "doc",
+    version: 1,
+    content: [
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "PROC.NO Procedure title",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements. (Repeat as needed)",
+            ]]
+        ],
+    ]
+]
+
+def reportUpdates = [
+    type: "doc",
+    version: 1,
+    content: [
+        [
+            type: "heading",
+            attrs: [ level: 2 ],
+            content: [[
+                type: "text",
+                text: "Report Type",
+            ]]
+        ],
+        [
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements. (Repeat as needed)",
+            ]]
+        ],
+    ]
+]
 
 // create Process Review ticket in the correct Jira project
 def now = LocalDate.now()
@@ -53,169 +220,10 @@ def result = post("/rest/api/3/issue")
             assignee: null != processOwner ? [ accountId: processOwner ] : null,
             (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
             (processManagerId): null != processManager ? [ accountId: processManager ] : null,
-            description: [
-                type: "doc",
-                version: 1,
-                content: [
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "This ticket collects findings from the process review.",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [
-                            [
-                                type: "text",
-                                text: "Please refer to the ",
-                            ],
-                            [
-                                type: "text",
-                                text: "EGI Glossary",
-                                marks: [[
-                                    type: "link",
-                                    attrs: [ href: "https://wiki.egi.eu/wiki/Glossary" ]
-                                ]]
-                            ],
-                            [
-                                type: "text",
-                                text: " for the definitions of the terms used in this review.",
-                            ]
-                        ]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [
-                            [
-                                type: "text",
-                                text: "The keywords MUST (NOT), SHALL (NOT), SHOULD (NOT), REQUIRED, RECOMMENDED, MAY, and OPTIONAL in this review are to be interpreted as described in ",
-                            ],
-                            [
-                                type: "text",
-                                text: "RFC 2119",
-                                marks: [[
-                                    type: "link",
-                                    attrs: [ href: "http://tools.ietf.org/html/rfc2119" ]
-                                ]]
-                            ],
-                            [
-                                type: "text",
-                                text: ".",
-                            ]
-                        ]
-                    ]
-                ]
-            ],
-            (definitionUpdatesId): [
-                type: "doc",
-                version: 1,
-                content: [
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "Goals",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements.",
-                        ]]
-                    ],
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "Requirements",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements.",
-                        ]]
-                    ],
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "Roles",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements.",
-                        ]]
-                    ],
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "Input & Output",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements.",
-                        ]]
-                    ],
-                ]
-            ],
-            (procedureUpdatesId): [
-                type: "doc",
-                version: 1,
-                content: [
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "PROC.NO Procedure title",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements. (Repeat as needed)",
-                        ]]
-                    ],
-                ]
-            ],
-            (reportUpdatesId): [
-                type: "doc",
-                version: 1,
-                content: [
-                    [
-                        type: "heading",
-                        attrs: [ level: 2 ],
-                        content: [[
-                            type: "text",
-                            text: "Report Type",
-                        ]]
-                    ],
-                    [
-                        type: "paragraph",
-                        content: [[
-                            type: "text",
-                            text: "Current status and need for improvements. (Repeat as needed)",
-                        ]]
-                    ],
-                ]
-            ],
+            description: description,
+            (definitionUpdatesId): definitionUpdates,
+            (procedureUpdatesId): procedureUpdates,
+            (reportUpdatesId): reportUpdates,
         ],
         update:[
             issuelinks: [[
