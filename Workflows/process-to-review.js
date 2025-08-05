@@ -33,13 +33,16 @@ if(null == processCode) {
 
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
+def processHomeId = customFields.find { it.name == 'Process homepage' }?.id?.toString()
 def definitionUpdatesId = customFields.find { it.name == 'Process definition review and updates' }?.id?.toString()
 def procedureUpdatesId = customFields.find { it.name == 'Procedure and policy review and updates' }?.id?.toString()
+def procedureHomeId = customFields.find { it.name == 'Procedure homepage' }?.id?.toString()
 def reportUpdatesId = customFields.find { it.name == 'Report review and updates' }?.id?.toString()
 def perfIndUpdatesId = customFields.find { it.name == 'Performance indicator review and updates' }?.id?.toString()
 
 def processOwner = issue.fields[processOwnerId]?.accountId as String
 def processManager = issue.fields[processManagerId]?.accountId as String
+def processHome = issue.fields[processHomeId] as String
 
 def description = [
     type: "doc",
@@ -103,7 +106,7 @@ def definitionUpdates = [
     content: [
         [
             type: "heading",
-            attrs: [ level: 2 ],
+            attrs: [ level: 3 ],
             content: [[
                 type: "text",
                 text: "Goals",
@@ -118,7 +121,7 @@ def definitionUpdates = [
         ],
         [
             type: "heading",
-            attrs: [ level: 2 ],
+            attrs: [ level: 3 ],
             content: [[
                 type: "text",
                 text: "Requirements",
@@ -133,7 +136,7 @@ def definitionUpdates = [
         ],
         [
             type: "heading",
-            attrs: [ level: 2 ],
+            attrs: [ level: 3 ],
             content: [[
                 type: "text",
                 text: "Roles",
@@ -148,7 +151,7 @@ def definitionUpdates = [
         ],
         [
             type: "heading",
-            attrs: [ level: 2 ],
+            attrs: [ level: 3 ],
             content: [[
                 type: "text",
                 text: "Input & Output",
@@ -167,23 +170,7 @@ def definitionUpdates = [
 def procedureUpdates = [
     type: "doc",
     version: 1,
-    content: [
-        [
-            type: "heading",
-            attrs: [ level: 2 ],
-            content: [[
-                type: "text",
-                text: "PROC.NO Procedure title",
-            ]]
-        ],
-        [
-            type: "paragraph",
-            content: [[
-                type: "text",
-                text: "Current status and need for improvements. (Repeat as needed)",
-            ]]
-        ],
-    ]
+    content: []
 ]
 
 def reportUpdates = [
@@ -208,15 +195,74 @@ def reportUpdates = [
     ]
 ]
 
+logger.info(processHome)
+
+if(null != processHome) {
+    definitionUpdates.content[0]?.content[0]?.marks = [[
+        type: "link",
+        attrs: [ href: "${processHome}#Goals" ]
+    ]]
+
+    definitionUpdates.content[2]?.content[0]?.marks = [[
+        type: "link",
+        attrs: [ href: "${processHome}#Requirements" ]
+    ]]
+
+    definitionUpdates.content[4]?.content[0]?.marks = [[
+        type: "link",
+        attrs: [ href: "${processHome}#Roles" ]
+    ]]
+
+    definitionUpdates.content[6]?.content[0]?.marks = [[
+        type: "link",
+        attrs: [ href: "${processHome}#Inputs-%26-Outputs" ]
+    ]]
+}
+
+// find all active procedures
+def result = get("/rest/api/3/search/jql?fields=summary,${procedureHomeId}&jql=project%3D${processCode}%20AND%20issuetype%3DProcedure%20AND%20statusCategory%20%21%3D%20Done")
+    .asObject(Map)
+
+if(result.status >= 200 && result.status < 300) {
+    for(def proc : result.body.issues) {
+
+        def heading = [
+            type: "heading",
+            attrs: [ level: 3 ],
+            content: [[
+                type: "text",
+                text: proc?.fields?.summary,
+            ]]
+        ]
+
+        if(null != proc?.fields[procedureHomeId])
+            heading.content[0].marks = [[
+                type: "link",
+                attrs: [ href: proc?.fields[procedureHomeId] ]
+            ]]
+        
+        procedureUpdates.content.add(heading)
+        procedureUpdates.content.add([
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ])
+    }
+}
+else
+    logger.info("Could not list ${processCode} procedures (${result.status})")
+
 // create Process Review ticket in the correct Jira project
 def now = LocalDate.now()
-def result = post("/rest/api/3/issue") 
+result = post("/rest/api/3/issue") 
     .header("Content-Type", "application/json")
     .body([
         fields:[
             project: [ key: processCode ],
             issuetype: [ name: "Process Review" ],
-            summary: "${processCode} process review ${now.year}.${now.monthValue}",
+            summary: "${processCode} process review ${now.year}.${String.format('%02d', now.monthValue)}",
             assignee: null != processOwner ? [ accountId: processOwner ] : null,
             (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
             (processManagerId): null != processManager ? [ accountId: processManager ] : null,
