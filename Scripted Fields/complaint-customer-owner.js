@@ -7,7 +7,7 @@ def type = issue.fields['issuetype']?.name as String
 if(null == type || type.isEmpty() || 0 != type.compareToIgnoreCase("Complaint"))
     return ""
 
-// find the first Customer ticket linked with an inward "" relationship
+// find the first Customer ticket linked with an inward "is complaint from" relationship
 def customerOwnerName = ""
 def links = issue.fields['issuelinks'] as List
 

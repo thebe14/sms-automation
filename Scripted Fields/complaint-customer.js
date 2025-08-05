@@ -2,12 +2,12 @@
 // description: The customer from the linked Customer ticket
 // type: short text
 
-// check and only calculate this field for Complain tickets
+// check and only calculate this field for Complaint tickets
 def type = issue.fields['issuetype']?.name as String
 if(null == type || type.isEmpty() || 0 != type.compareToIgnoreCase("Complaint"))
     return ""
 
-// find the first Customer ticket linked with a inward "" relationship
+// find the first Customer ticket linked with an inward "is complaint from" relationship
 def links = issue.fields['issuelinks'] as List
 
 for(def link : links) {
