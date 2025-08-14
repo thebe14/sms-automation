@@ -11,7 +11,7 @@ if(issue == null) {
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ticket ${issue.key}")
+    logger.info("Ignore test process ${issue.key}")
     return
 }
 
@@ -21,10 +21,12 @@ def jiraToken = "mytoken"
 /***
  * Replace members of a Jira group
  * @param groupName is the name of a user group in Jira
- * @param users is an array of the new group members, having accountID and displayName fields
+ * @param users is a map of the new group members, having accountIDs as key and displayNames as value
+ * @param jiraUser is the email address of a Jira user with permissions to add/remove users to/from groups
+ * @param jiraToken is an access token for the Jira user
  * @returns true on success
  */
-def setUsersInGroup(groupName, users, jiraUser, jiraToken) {
+def setUsersInGroup(groupName, Map users, String jiraUser, String jiraToken) {
     // first, get the group Id
     def result = get("/rest/api/3/groups/picker?query=${groupName}")
         .header("Content-Type", "application/json")
@@ -67,37 +69,45 @@ def setUsersInGroup(groupName, users, jiraUser, jiraToken) {
             if(null == member || null == member.accountId)
                 continue
 
-            // and remove them from the group
-            def accountId = member["accountId"]
-            result = delete("/rest/api/3/group/user?groupId=${groupId}&accountId=${accountId}")
-                        .basicAuth(jiraUser, jiraToken)
-                        .asString()
-
-            if(result.status < 200 || result.status > 204) {
-                logger.info("Could not remove user ${member["displayName"]} from group ${groupName} (${result.status})")
-                return false
+            // check if this current member is also included in the new member list
+            if(users.containsKey(member.accountId)) {
+                // yes, remove from the list of users to add to the group (is already a member)
+                users.remove(member.accountId)
+                logger.info("User ${member.displayName} is already a member of group ${groupName}")
             }
+            else {
+                // nope, remove user from the group
+                def accountId = member.accountId
+                result = delete("/rest/api/3/group/user?groupId=${groupId}&accountId=${accountId}")
+                            .basicAuth(jiraUser, jiraToken)
+                            .asString()
 
-            logger.info("Removed user ${member["displayName"]} from group ${groupName}")
+                if(result.status < 200 || result.status > 204) {
+                    logger.info("Could not remove user ${member.displayName} from group ${groupName} (${result.status})")
+                    return false
+                }
+
+                logger.info("Removed user ${member.displayName} from group ${groupName}")
+            }
         }
 
-    // add the new members of the group
-    for(def user : users) {
-        if(null == user || null == user.accountId)
+    // add the new members into the group
+    for(def user in users) {
+        if(null == user.key || null == user.value)
             continue
 
         result = post("/rest/api/3/group/user?groupId=${groupId}")
-            .basicAuth(jiraUser, jiraToken)
             .header("Content-Type", "application/json")
-            .body([ accountId: user.accountId ])
+            .basicAuth(jiraUser, jiraToken)
+            .body([ accountId: user.key ])
             .asString()
 
         if(result.status < 200 || result.status > 204) {
-            logger.info("Could not add user ${user.displayName} to group ${groupName} (${result.status})")
+            logger.info("Could not add user ${user.value} to group ${groupName} (${result.status})")
             return false
         }
 
-        logger.info("Added user ${user.displayName} to group ${groupName}")
+        logger.info("Added user ${user.value} to group ${groupName}")
     }
 
     return true
@@ -181,16 +191,21 @@ switch(process) {
 
 if(ownerChanged && null != processCode) {
     def processOwnerGroup = "${processCode.toLowerCase()}-process-owner"
-    setUsersInGroup(processOwnerGroup, [[ accountId: processOwner, displayName: processOwnerName ]], jiraUser, jiraToken)
+    def users = [:]
+    users[processOwner] = processOwnerName
+    setUsersInGroup(processOwnerGroup, users, jiraUser, jiraToken)
 }
 
 if(managerChanged && null != processCode) {
     def processManagerGroup = "${processCode.toLowerCase()}-process-manager"
-    setUsersInGroup(processManagerGroup, [[ accountId: processManager, displayName: processManagerName ]], jiraUser, jiraToken)
+    def users = [:]
+    users[processManager] = processManagerName
+    setUsersInGroup(processManagerGroup, users, jiraUser, jiraToken)
 }
 
 // update the process code
-def result = put("/rest/api/3/issue/${issue.key}") 
+def result = put("/rest/api/3/issue/${issue.key}")
+    .queryString("overrideScreenSecurity", Boolean.TRUE)
     .header("Content-Type", "application/json")
     .body([
         fields:[
