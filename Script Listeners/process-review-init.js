@@ -11,7 +11,7 @@ if(issue == null) {
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ticket ${issue.key}")
+    logger.info("Ignore test process review ${issue.key}")
     return
 }
 
