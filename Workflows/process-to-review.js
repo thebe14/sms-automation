@@ -202,7 +202,7 @@ else
 
 // create Process Review ticket in the correct Jira project
 def now = LocalDate.now()
-result = post("/rest/api/3/issue") 
+result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
@@ -210,8 +210,6 @@ result = post("/rest/api/3/issue")
             issuetype: [ name: "Process Review" ],
             summary: "${processCode} process review ${now.year}.${String.format('%02d', now.monthValue)}",
             assignee: null != processOwner ? [ accountId: processOwner ] : null,
-            (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
-            (processManagerId): null != processManager ? [ accountId: processManager ] : null,
             description: processReviewGuide,
             (definitionUpdatesId): definitionUpdates,
             (procedureUpdatesId): procedureUpdates,
@@ -235,6 +233,23 @@ if(result.status < 200 || result.status >= 300) {
 
 def newTicket = result.body as Map
 logger.info("Created process review ${newTicket.key}")
+
+// some hidden fields we cannot set on creation (don't want to add them to the create screen)
+result = put("/rest/api/3/issue/${newTicket.key}")
+    .queryString("overrideScreenSecurity", Boolean.TRUE)
+    .header("Content-Type", "application/json")
+    .body([
+        fields:[
+            (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
+            (processManagerId): null != processManager ? [ accountId: processManager ] : null,
+        ],
+    ])
+    .asObject(Map)
+
+if(result.status < 200 || result.status >= 300) {
+    logger.info("Could not update process review ${newTicket.key} (${result.status})")
+    return
+}
 
 // add a comment about the new review that has started
 result = get('/rest/api/3/myself').asObject(Map)
@@ -267,4 +282,4 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
     .asObject(Map)
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not add comment to ${issue.key} (${result.status})")
+    logger.info("Could not add comment to process ${issue.key} (${result.status})")
