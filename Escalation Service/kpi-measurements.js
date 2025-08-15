@@ -1,6 +1,6 @@
-// schedule: Every day at noon
+// schedule: Every hour
 // jql: issuetype="Key Performance Indicator" AND status in (Active, "Escalated to Process Owner", "Escalated to SMS owner") AND "Next measurement[Time stamp]" < now() ORDER BY cf[10161] ASC
-// run as: ?
+// run as: LF
 
 import java.util.Date
 import java.time.LocalDate
@@ -52,6 +52,8 @@ if(result.status < 200 || result.status >= 300) {
     logger.info("Could not create measurement for KPI ${kpi.key} (${result.status})")
     return
 }
+
+logger.info("Created measurement ${result.body.key} for KPI ${summary} (${result.status})")
 
 // get custom fields
 def customFields = get("/rest/api/3/field")
