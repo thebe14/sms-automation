@@ -25,7 +25,7 @@ if(!status.equalsIgnoreCase("Received")) {
     return
 }
 
-// find the KPI ticket linked with a inward "is measurement for" relationship
+// find the KPI ticket linked with inward "is measurement for" relationship
 def links = issue.fields['issuelinks'] as List
 def kpi = null
 for(def link : links) {
@@ -299,22 +299,6 @@ if(!fields.isEmpty()) {
         if(!manualMeasurement)
             autoMeasurementFailed = true
         logger.info("Could not update measurement ${issue.key} (${result.status})")
-    }
-    else {
-        // update the "Last measured value" and "Last measured on" fields of the linked KPI ticket
-        def dateTimeFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
-        result = put("/rest/api/3/issue/${kpi.key}")
-            .header("Content-Type", "application/json")
-            .body([
-                fields: [
-                    (lastMeasuredValueId): measuredValue.toString(),
-                    (lastMeasuredOnId): dateTimeFormatter.format(new Date())
-                ]
-            ])
-            .asObject(Map)
-
-        if(result.status < 200 || result.status > 204)
-            logger.info("Could not update KPI ${issue.key} (${result.status})")
     }
 }
 

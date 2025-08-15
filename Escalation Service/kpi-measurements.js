@@ -53,7 +53,7 @@ if(result.status < 200 || result.status >= 300) {
     return
 }
 
-logger.info("Created measurement ${result.body.key} for KPI ${summary} (${result.status})")
+logger.info("Created measurement ${result.body.key} for KPI ${summary}")
 
 // get custom fields
 def customFields = get("/rest/api/3/field")
