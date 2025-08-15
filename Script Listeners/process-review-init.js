@@ -18,6 +18,7 @@ if(summary.toLowerCase().trim() == "test") {
 /***
  * Fetch and return all users in a Jira group
  * @param groupName is the name of a user group in Jira
+ * @param logMembers controls whether to log the members of the group
  * @returns array of user, null or error
  */
 def getUsersInGroup(groupName, logMembers = false) {
@@ -137,7 +138,8 @@ if(null != processManager) {
 }
 
 // update the Stakeholders field
-def result = put("/rest/api/3/issue/${issue.key}") 
+def result = put("/rest/api/3/issue/${issue.key}")
+    .queryString("overrideScreenSecurity", Boolean.TRUE)
     .header("Content-Type", "application/json")
     .body([
         fields:[
@@ -150,4 +152,4 @@ def result = put("/rest/api/3/issue/${issue.key}")
     .asObject(Map)
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not update ${issue.key} (${result.status})")
+    logger.info("Could not update process review ${issue.key} (${result.status})")

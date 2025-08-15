@@ -201,6 +201,12 @@ else
     logger.info("Could not list ${processCode} procedures (${result.status})")
 
 // create Process Review ticket in the correct Jira project
+def assignee = null
+if(null != processOwner)
+    assignee = [ accountId: processOwner ]
+else if(null != processManager)
+    assignee = [ accountId: processManager ]
+
 def now = LocalDate.now()
 result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
@@ -209,7 +215,7 @@ result = post("/rest/api/3/issue")
             project: [ key: processCode ],
             issuetype: [ name: "Process Review" ],
             summary: "${processCode} process review ${now.year}.${String.format('%02d', now.monthValue)}",
-            assignee: null != processOwner ? [ accountId: processOwner ] : null,
+            assignee: assignee,
             description: processReviewGuide,
             (definitionUpdatesId): definitionUpdates,
             (procedureUpdatesId): procedureUpdates,
@@ -233,23 +239,6 @@ if(result.status < 200 || result.status >= 300) {
 
 def newTicket = result.body as Map
 logger.info("Created process review ${newTicket.key}")
-
-// some hidden fields we cannot set on creation (don't want to add them to the create screen)
-result = put("/rest/api/3/issue/${newTicket.key}")
-    .queryString("overrideScreenSecurity", Boolean.TRUE)
-    .header("Content-Type", "application/json")
-    .body([
-        fields:[
-            (processOwnerId): null != processOwner ? [ accountId: processOwner ] : null,
-            (processManagerId): null != processManager ? [ accountId: processManager ] : null,
-        ],
-    ])
-    .asObject(Map)
-
-if(result.status < 200 || result.status >= 300) {
-    logger.info("Could not update process review ${newTicket.key} (${result.status})")
-    return
-}
 
 // add a comment about the new review that has started
 result = get('/rest/api/3/myself').asObject(Map)
