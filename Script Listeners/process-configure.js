@@ -2,7 +2,13 @@
 // in projects: SMS
 // run as: ScriptRunner add-on user
 // conditions:
-// ['Process'].includes(issue.issueType.name)
+// ['Process',
+//  'Process BA', 'Process BDS', 'Process CAPM', 'Process ChaRDM', 'Process COM',
+//  'Process CONFM', 'Process CSI', 'Process CRM', 'Process FA', 'Process PROF',
+//  'Process HR', 'Process ISM', 'Process ISRM', 'Process PM', 'Process PKM',
+//  'Process PPM', 'Process PRM', 'Process RM', 'Process SACM', 'Process SUPPM',
+//  'Process SLM', 'Process SPM', 'Process SRM', 'Process SMS'
+// ].includes(issue.issueType.name)
 
 if(issue == null) {
     logger.info("No issue")
@@ -181,12 +187,13 @@ switch(process) {
     case "Project Knowledge Management (PKM)": processCode = "PKM"; break
     case "Project Portfolio Management (PPM)": processCode = "PPM"; break
     case "Project Management (PRM)": processCode = "PRM"; break
-    case "Risk management (RM)": processCode = "RM"; break
+    case "Risk Management (RM)": processCode = "RM"; break
     case "Service Availability and Continuity Management (SACM)": processCode = "SACM"; break
     case "Supplier Relationship Management (SUPPM)": processCode = "SUPPM"; break
     case "Service Level Management (SLM)": processCode = "SLM"; break
     case "Service Portfolio Management (SPM)": processCode = "SPM"; break
     case "Service Reporting Management (SRM)": processCode = "SRM"; break
+    case "Management System (SMS)": processCode = "SMS"; break
 }
 
 if(ownerChanged && null != processCode) {
