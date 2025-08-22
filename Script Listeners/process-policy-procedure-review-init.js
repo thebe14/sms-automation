@@ -2,7 +2,7 @@
 // in projects: all
 // run as: ScriptRunner add-on user
 // conditions:
-// ['Process Review'].includes(issue.issueType.name)
+// ['Process Review', 'Policy Review', 'Procedure Review'].includes(issue.issueType.name)
 
 if(issue == null) {
     logger.info("No issue")
@@ -11,7 +11,7 @@ if(issue == null) {
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test process review ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 
@@ -100,6 +100,7 @@ switch(projectKey.toUpperCase()) {
     case "SLM": process = "Service Level Management (SLM)"; break
     case "SPM": process = "Service Portfolio Management (SPM)"; break
     case "SRM": process = "Service Reporting Management (SRM)"; break
+    case "SMS": process = "Management System (SMS)"; break
 }
 
 if(null == process || process.isEmpty()) {
@@ -137,7 +138,8 @@ if(null != processManager) {
     processManager = [ accountId: processManager ]
 }
 
-// update the Stakeholders field
+// store current process owner and process manager on the review ticket,
+// and add them to the Stakeholders field
 def result = put("/rest/api/3/issue/${issue.key}")
     .queryString("overrideScreenSecurity", Boolean.TRUE)
     .header("Content-Type", "application/json")
@@ -152,4 +154,4 @@ def result = put("/rest/api/3/issue/${issue.key}")
     .asObject(Map)
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not update process review ${issue.key} (${result.status})")
+    logger.info("Could not update ${issue.fields.issuetype.name.toLowerCase()} ${issue.key} (${result.status})")
