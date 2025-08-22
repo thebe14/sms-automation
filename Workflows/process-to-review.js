@@ -1,9 +1,7 @@
 // workflow: SMS Process Workflow
-// on transition: Active -> UnderReview
+// on transition: Active -> InReview
 // run as: Initiating user
 // conditions: true
-
-import java.time.LocalDate
 
 if(issue == null) {
     logger.info("No issue")
@@ -36,15 +34,19 @@ def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.t
 def processHomeId = customFields.find { it.name == 'Process homepage' }?.id?.toString()
 def processReviewGuideId = customFields.find { it.name == 'Process review guide' }?.id?.toString()
 def definitionUpdatesId = customFields.find { it.name == 'Process definition review and updates' }?.id?.toString()
-def procedureUpdatesId = customFields.find { it.name == 'Procedure and policy review and updates' }?.id?.toString()
+def policyHomeId = customFields.find { it.name == 'Policy homepage' }?.id?.toString()
 def procedureHomeId = customFields.find { it.name == 'Procedure homepage' }?.id?.toString()
+def policyUpdatesId = customFields.find { it.name == 'Policy review and updates' }?.id?.toString()
+def procedureUpdatesId = customFields.find { it.name == 'Procedure review and updates' }?.id?.toString()
+def kpiUpdatesId = customFields.find { it.name == 'Performance indicator review and updates' }?.id?.toString()
 def reportUpdatesId = customFields.find { it.name == 'Report review and updates' }?.id?.toString()
-def perfIndUpdatesId = customFields.find { it.name == 'Performance indicator review and updates' }?.id?.toString()
+def reviewFrequencyId = customFields.find { it.name == 'Review process' }?.id?.toString()
 
 def processOwner = issue.fields[processOwnerId]?.accountId as String
 def processManager = issue.fields[processManagerId]?.accountId as String
 def processHome = issue.fields[processHomeId] as String
 def processReviewGuide = issue.fields[processReviewGuideId]
+def reviewFrequency = issue.fields[reviewFrequencyId]?.value as String
 
 def definitionUpdates = [
     type: "doc",
@@ -113,7 +115,19 @@ def definitionUpdates = [
     ]
 ]
 
+def policyUpdates = [
+    type: "doc",
+    version: 1,
+    content: []
+]
+
 def procedureUpdates = [
+    type: "doc",
+    version: 1,
+    content: []
+]
+
+def kpiUpdates = [
     type: "doc",
     version: 1,
     content: []
@@ -165,8 +179,43 @@ if(null != processHome) {
     ]]
 }
 
+// find all active policies
+def result = get("/rest/api/3/search/jql?fields=key,summary,status,${policyHomeId}&jql=project%3D${processCode}%20AND%20issuetype%3DPolicy%20AND%20status%20!%3D%20Inactive")
+    .asObject(Map)
+
+if(result.status >= 200 && result.status < 300) {
+    for(def pol : result.body.issues) {
+
+        def heading = [
+            type: "heading",
+            attrs: [ level: 3 ],
+            content: [[
+                type: "text",
+                text: pol?.fields?.summary,
+            ]]
+        ]
+
+        if(null != pol?.fields[policyHomeId])
+            heading.content[0].marks = [[
+                type: "link",
+                attrs: [ href: pol?.fields[policyHomeId] ]
+            ]]
+        
+        policyUpdates.content.add(heading)
+        policyUpdates.content.add([
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ])
+    }
+}
+else
+    logger.info("Could not list ${processCode} policies (${result.status})")
+
 // find all active procedures
-def result = get("/rest/api/3/search/jql?fields=summary,${procedureHomeId}&jql=project%3D${processCode}%20AND%20issuetype%3DProcedure%20AND%20statusCategory%20%21%3D%20Done")
+result = get("/rest/api/3/search/jql?fields=key,summary,status,${procedureHomeId}&jql=project%3D${processCode}%20AND%20issuetype%3DProcedure%20AND%20status%20!%3D%20Inactive")
     .asObject(Map)
 
 if(result.status >= 200 && result.status < 300) {
@@ -200,6 +249,39 @@ if(result.status >= 200 && result.status < 300) {
 else
     logger.info("Could not list ${processCode} procedures (${result.status})")
 
+// find all active KPIs
+result = get("/rest/api/3/search/jql?fields=key,summary,status&jql=project%3D${processCode}%20and%20issuetype%3D%22Key%20Performance%20Indicator%22%20and%20status!%3DInactive")
+    .asObject(Map)
+
+if(result.status >= 200 && result.status < 300) {
+    for(def kpi : result.body.issues) {
+
+        def heading = [
+            type: "heading",
+            attrs: [ level: 3 ],
+            content: [[
+                type: "text",
+                text: kpi.fields?.summary,
+                marks: [[
+                    type: "link",
+                    attrs: [ href: "/browse/${kpi?.key}" ]
+                ]]
+            ]]
+        ]
+
+        kpiUpdates.content.add(heading)
+        kpiUpdates.content.add([
+            type: "paragraph",
+            content: [[
+                type: "text",
+                text: "Current status and need for improvements.",
+            ]]
+        ])
+    }
+}
+else
+    logger.info("Could not list ${processCode} KPIs (${result.status})")
+
 // create Process Review ticket in the correct Jira project
 def assignee = null
 if(null != processOwner)
@@ -207,18 +289,51 @@ if(null != processOwner)
 else if(null != processManager)
     assignee = [ accountId: processManager ]
 
-def now = LocalDate.now()
+def now = Calendar.instance
+def reviewDate = null
+
+switch(reviewFrequency.toLowerCase()) {
+    case "quarterly":
+        def month = 1 + now.get(Calendar.MONTH)
+        def quarter = 1
+        if(month >= 4 && month <= 6)
+            quarter = 2
+        else if(month >= 7 && month <= 9)
+            quarter = 3
+        else if(month >= 10)
+            quarter = 4
+        reviewDate = "${now.get(Calendar.YEAR)}.Q${quarter}"
+        break
+
+    case "semiannually":
+        def month = 1 + now.get(Calendar.MONTH)
+        def half = month < 7 ? 1 : 2
+        reviewDate = "${now.get(Calendar.YEAR)}-${half}"
+        break
+
+    case "annually":
+        reviewDate = "${now.get(Calendar.YEAR)}"
+        break
+
+    case "monthly":
+    default:
+        reviewDate = "${now.get(Calendar.YEAR)}.${String.format('%02d', 1 + now.get(Calendar.MONTH))}"
+        break
+}
+
 result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
             project: [ key: processCode ],
             issuetype: [ name: "Process Review" ],
-            summary: "${processCode} process review ${now.year}.${String.format('%02d', now.monthValue)}",
+            summary: "Review of process ${processCode} on ${reviewDate}",
             assignee: assignee,
             description: processReviewGuide,
             (definitionUpdatesId): definitionUpdates,
+            (policyUpdatesId): policyUpdates,
             (procedureUpdatesId): procedureUpdates,
+            (kpiUpdatesId): kpiUpdates,
             (reportUpdatesId): reportUpdates,
         ],
         update:[
