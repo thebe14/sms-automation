@@ -328,8 +328,8 @@ if(!manualMeasurement) {
                 id: transId,
             ]
         ])
-        .asObject(Map)
+        .asString()
 
     if(result.status < 200 || result.status > 204)
-        logger.info("Could not transition ${issue.key} to ${transName} (${result.status})")
+        logger.info("Could not transition ${issue.key} via ${transName} (${result.status})")
 }

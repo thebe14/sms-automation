@@ -16,3 +16,4 @@ and this project adheres to
 - Create Measurement ticket linked to the KPI ticket when next measurement datetime has passed for active KPIs
 - Implemented automatic measurement in Measurement tickets linked to KPI tickets where the field Measurement type is anything but Manual
 - Added Confluence macros to count Jira tickets and to list group members
+0 Added Customer ticket actions to start a project and create a contact
