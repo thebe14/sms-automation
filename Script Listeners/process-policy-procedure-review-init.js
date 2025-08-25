@@ -4,11 +4,6 @@
 // conditions:
 // ['Process Review', 'Policy Review', 'Procedure Review'].includes(issue.issueType.name)
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
     logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")

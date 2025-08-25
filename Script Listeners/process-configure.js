@@ -10,14 +10,9 @@
 //  'Process SLM', 'Process SPM', 'Process SRM', 'Process SMS'
 // ].includes(issue.issueType.name)
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test process ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 

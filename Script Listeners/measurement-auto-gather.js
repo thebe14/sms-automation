@@ -8,14 +8,9 @@ import java.math.BigDecimal
 import java.util.Date
 import java.text.SimpleDateFormat
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
 def summary = issue.fields['summary'] as String
-if(summary.trim().toLowerCase() == "test") {
-    logger.info("Ignore test measurement ${issue.key}")
+if(summary.toLowerCase().trim() == "test") {
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 
