@@ -3,14 +3,9 @@
 // run as: Initiating user
 // conditions: true
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test process ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 
@@ -25,7 +20,7 @@ def customFields = get("/rest/api/3/field")
 def processCodeId = customFields.find { it.name == 'Process code' }?.id?.toString()
 def processCode = issue.fields[processCodeId]?.toUpperCase() as String
 if(null == processCode) {
-    logger.info("No process code")
+    logger.info("No process code on ${issue.key}")
     return
 }
 
@@ -339,8 +334,8 @@ result = post("/rest/api/3/issue")
         update:[
             issuelinks: [[
                 add: [
-                    type: [ name: "Relates" ],
-                    outwardIssue: [ key: issue.key ]
+                    type: [ name: "Review" ],
+                    inwardIssue: [ key: issue.key ]
                 ]
             ]]
         ],
@@ -358,7 +353,7 @@ logger.info("Created process review ${newTicket.key}")
 // add a comment about the new review that has started
 result = get('/rest/api/3/myself').asObject(Map)
 def currentUser = result.body as Map
-result = post("/rest/api/3/issue/${issue.key}/comment") 
+result = post("/rest/api/3/issue/${issue.key}/comment")
     .header("Content-Type", "application/json")
     .body([
         body: [
@@ -383,7 +378,7 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
             ]]
         ]
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not add comment to process ${issue.key} (${result.status})")
