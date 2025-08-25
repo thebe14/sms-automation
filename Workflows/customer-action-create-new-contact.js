@@ -115,7 +115,7 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
             ]]
         ]
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not add comment to customer ${issue.key} (${result.status})")
