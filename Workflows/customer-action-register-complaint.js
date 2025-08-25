@@ -1,11 +1,16 @@
 // workflow: CRM Customer Workflow
-// on transition: InProgress -> InProgress (Start new project)
+// on transition: Active -> Active (Register complaint)
 // run as: Initiating user
 // conditions: true
 
+if(issue == null) {
+    logger.info("No issue")
+    return
+}
+
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test customer ${issue.key}")
     return
 }
 
@@ -18,33 +23,37 @@ def customFields = get("/rest/api/3/field")
 
 def customerNameId = customFields.find { it.name == 'Customer name' }?.id?.toString()
 def customerOwnerId = customFields.find { it.name == 'Customer owner' }?.id?.toString()
-def projectNameId = customFields.find { it.name == 'Project name' }?.id?.toString()
-def projectOwnerId = customFields.find { it.name == 'Project owner' }?.id?.toString()
+def complaintOwnerId = customFields.find { it.name == 'Complaint owner' }?.id?.toString()
+def complaintTextId = customFields.find { it.name == 'Customer complaint' }?.id?.toString()
+def receivedViaId = customFields.find { it.name == 'Received via channel' }?.id?.toString()
 
 def projectKey = issue.fields.project.key as String
 def customerName = issue.fields[customerNameId] as String
 def customerOwner = issue.fields[customerOwnerId]?.accountId as String
-def projectOwner = issue.fields[projectOwnerId]?.accountId as String
-def projectName = issue.fields[projectNameId] as String
+def complaintOwner = issue.fields[complaintOwnerId]?.accountId as String
+def complaintText = issue.fields[complaintTextId]
+def receivedVia = issue.fields[receivedViaId]?.value as String
 
-if(null == projectOwner)
-    projectOwner = customerOwner
+if(null == complaintOwner)
+    complaintOwner = customerOwner
 
+// create new complaint ticket
 def result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
             project: [ key: projectKey ],
-            issuetype: [ name: "Project" ],
-            summary: projectName,
-            assignee: [ accountId: projectOwner ],
-            (projectNameId): projectName,
-            (projectOwnerId): [ accountId: projectOwner ],
+            issuetype: [ name: "Complaint" ],
+            summary: "New complaint from customer ${customerName}",
+            assignee: [ accountId: complaintOwner ],
+            (complaintOwnerId): [ accountId: complaintOwner ],
+            (complaintTextId): complaintText,
+            (receivedViaId): [ value: receivedVia ],
         ],
         update:[
             issuelinks: [[
                 add: [
-                    type: [ name: "Customer-Project" ],
+                    type: [ name: "Customer-Complaint" ],
                     inwardIssue: [ key: issue.key ]
                 ]
             ]]
@@ -53,28 +62,29 @@ def result = post("/rest/api/3/issue")
     .asObject(Map)
 
 if(result.status < 200 || result.status >= 300) {
-    logger.info("Could not create project for customer ${customerName} (${result.status})")
+    logger.info("Could not create complaint for customer ${issue.key} (${result.status})")
     return
 }
 
 def newTicket = result.body as Map
-logger.info("Created project ${newTicket.key} for customer ${customerName}")
+logger.info("Created complaint ${newTicket.key} for customer ${customerName}")
 
-// clear the project details from the customer ticket, so new projects can be created clean
+// clear the complaint details from the customer ticket, so new complaints can be registered clean
 result = put("/rest/api/3/issue/${issue.key}")
     .header("Content-Type", "application/json")
     .body([
         fields:[
-            (projectNameId): null,
-            (projectOwnerId): null,
+            (complaintOwnerId): null,
+            (complaintTextId): null,
+            (receivedViaId): null,
         ],
     ])
     .asString()
 
 if(result.status < 200 || result.status >= 300)
-    logger.info("Could not clear contact details from customer ${issue.key} (${result.status})")
+    logger.info("Could not clear complaint details from customer ${issue.key} (${result.status})")
 
-// add a comment about the new project that was created
+// add a comment about the new complaint that was created
 result = post("/rest/api/3/issue/${issue.key}/comment") 
     .header("Content-Type", "application/json")
     .body([
@@ -86,7 +96,7 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
                 content: [
                     [
                         type: "text",
-                        text: "New project ${projectName} has been created for this customer, see ",
+                        text: " New complaint was received from this customer, see ",
                     ],
                     [
                         type: "text",

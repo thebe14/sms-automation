@@ -3,14 +3,9 @@
 // run as: ScriptRunner add-on
 // conditions: true
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test customer ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 
@@ -29,6 +24,7 @@ def contactEmailId = customFields.find { it.name == 'Contact email' }?.id?.toStr
 def contactPhoneId = customFields.find { it.name == 'Contact phone' }?.id?.toString()
 def contactOrgId = customFields.find { it.name == 'Contact organization' }?.id?.toString()
 
+def projectKey = issue.fields.project.key as String
 def customerName = issue.fields[customerNameId] as String
 def customerOwner = issue.fields[customerOwnerId]?.accountId as String
 def contactName = issue.fields[contactNameId] as String
@@ -36,7 +32,6 @@ def contactSurname = issue.fields[contactSurnameId] as String
 def contactEmail = issue.fields[contactEmailId] as String
 def contactPhone = issue.fields[contactPhoneId] as String
 def contactOrg = issue.fields[contactOrgId] as String
-def projectKey = issue.fields.project.key as String
 
 // create new contact ticket
 def result = post("/rest/api/3/issue")
