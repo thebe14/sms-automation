@@ -1,4 +1,4 @@
-// workflow: Procedure Workflow
+// workflow: Policy Workflow
 // on transition: Active -> InReview
 // run as: Initiating user
 // conditions: true
@@ -16,11 +16,11 @@ def customFields = get("/rest/api/3/field")
     .body
     .findAll { (it as Map).custom } as List<Map>
 
-// check that we have a procedure code
-def procedureCodeId = customFields.find { it.name == 'Procedure code' }?.id?.toString()
-def procedureCode = issue.fields[procedureCodeId]?.toUpperCase() as String
-if(null == procedureCode) {
-    logger.info("No procedure code on ${issue.key}")
+// check that we have a policy code
+def policyCodeId = customFields.find { it.name == 'Policy code' }?.id?.toString()
+def policyCode = issue.fields[policyCodeId]?.toUpperCase() as String
+if(null == policyCode) {
+    logger.info("No policy code on ${issue.key}")
     return
 }
 
@@ -32,7 +32,7 @@ def processOwner = issue.fields[processOwnerId]?.accountId as String
 def processManager = issue.fields[processManagerId]?.accountId as String
 def reviewFrequency = issue.fields[reviewFrequencyId]?.value as String
 
-// create Procedure Review ticket in the same Jira project
+// create Policy Review ticket in the same Jira project
 def assignee = null
 if(null != processOwner)
     assignee = [ accountId: processOwner ]
@@ -81,8 +81,8 @@ def result = post("/rest/api/3/issue")
     .body([
         fields:[
             project: [ key: issue.fields['project']?.key ],
-            issuetype: [ name: "Procedure Review" ],
-            summary: "Review of procedure ${procedureCode} on ${reviewDate}",
+            issuetype: [ name: "Policy Review" ],
+            summary: "Review of policy ${policyCode} on ${reviewDate}",
             assignee: assignee,
         ],
         update:[
@@ -97,12 +97,12 @@ def result = post("/rest/api/3/issue")
     .asObject(Map)
 
 if(result.status < 200 || result.status >= 300) {
-    logger.info("Could not create review for procedure ${procedureCode} (${result.status})")
+    logger.info("Could not create review for policy ${issue.key} (${result.status})")
     return
 }
 
 def newTicket = result.body as Map
-logger.info("Created review for procedure ${procedureCode} ${newTicket.key}")
+logger.info("Created review for policy ${policyCode} ${newTicket.key}")
 
 // add a comment about the new review that has started
 result = post("/rest/api/3/issue/${issue.key}/comment")
@@ -116,7 +116,7 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
                 content: [
                     [
                         type: "text",
-                        text: "A review of this procedure has been initiated, see ",
+                        text: "A review of this policy has been initiated, see ",
                     ],
                     [
                         type: "text",
@@ -133,4 +133,4 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
     .asString()
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not add comment to procedure ${issue.key} (${result.status})")
+    logger.info("Could not add comment to policy ${issue.key} (${result.status})")
