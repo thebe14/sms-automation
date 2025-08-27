@@ -1,6 +1,6 @@
 // workflow: CRM Customer Workflow
 // on transition: InProgress -> InProgress (Create new contact)
-// run as: ScriptRunner add-on
+// run as: Initiating user
 // conditions: true
 
 def summary = issue.fields['summary'] as String
@@ -40,7 +40,7 @@ def result = post("/rest/api/3/issue")
         fields:[
             project: [ key: projectKey ],
             issuetype: [ name: "Contact" ],
-            summary: "${contactSurname} ${contactName} ",
+            summary: "${contactSurname} ${contactName}",
             assignee: [ accountId: customerOwner ],
             (contactNameId): contactName,
             (contactSurnameId): contactSurname,
