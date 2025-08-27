@@ -106,7 +106,7 @@ result = put("/rest/api/3/issue/${kpi.key}")
             (nextMeasurementId): null != nextMeasurementDate ? dateTimeFormatter.format(nextMeasurementDate) : null,
         ]
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not update KPI ${issue.key} (${result.status})")

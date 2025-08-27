@@ -44,7 +44,7 @@ def reviewDate = null
 
 if(null == reviewFrequency)
     reviewFrequency = "Monthly"
-    
+
 switch(reviewFrequency.toLowerCase()) {
     case "weekly":
         reviewDate = "${now.get(Calendar.YEAR)}.W${String.format('%02d', now.get(Calendar.WEEK_OF_YEAR))}"

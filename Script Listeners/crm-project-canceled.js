@@ -77,7 +77,7 @@ if(status.equals("Canceled")) {
 
         // if the usecase is not in status Done
         if(!usecase.fields?.status?.name.equals("Done")) {
-            // transition the usecase to Canceled
+            // get the possible transitions on the usecase
             def transitions = [:]
             result = get("/rest/api/3/issue/${usecase.key}/transitions")
                 .header("Accept", "application/json")
