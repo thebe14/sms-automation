@@ -1,4 +1,4 @@
-// schedule: Every day at 1am
+// schedule: Every day
 // jql: issuetype=Policy AND status=Active AND "Review frequency[Dropdown]" not in (null, "Together with process review") AND "Next review[Date]" < now()
 // run as: LF
 
@@ -71,8 +71,8 @@ def reviewFrequencyId = customFields.find { it.name == 'Review frequency' }?.id?
 def nextReviewId = customFields.find { it.name == 'Next review' }?.id?.toString()
 
 def dateTimeFormatter = new SimpleDateFormat("yyyy-MM-dd")
-def reviewFrequency = procedure.fields[reviewFrequencyId]?.value as String
-def nextReview = procedure.fields[nextReviewId] as String
+def reviewFrequency = policy.fields[reviewFrequencyId]?.value as String
+def nextReview = policy.fields[nextReviewId] as String
 def nextReviewDate = null != nextReview ? dateTimeFormatter.parse(nextReview) : null as Date
 
 // update next review datetime of the policy
