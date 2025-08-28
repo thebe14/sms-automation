@@ -1,4 +1,4 @@
-// schedule: Every hour
+// schedule: Every hour, every day
 // jql: issuetype="Key Performance Indicator" AND status in (Active, "Escalated to Process Owner", "Escalated to SMS owner") AND "Next measurement[Time stamp]" < now() ORDER BY cf[10161] ASC
 // run as: LF
 

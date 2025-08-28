@@ -1,4 +1,4 @@
-// schedule: Every day
+// schedule: Every day at 1am
 // jql: issuetype=Policy AND status=Active AND "Review frequency[Dropdown]" not in (null, "Together with process review") AND "Next review[Date]" < now()
 // run as: LF
 
