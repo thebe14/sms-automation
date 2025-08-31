@@ -25,15 +25,12 @@ def statusOld = issue.fields[statusOldId] as String
 def statusChanged = (null == status) != (null == statusOld) || // both null or non-null
                     (null != status && 0 != status.compareTo(statusOld))
 
-def changes = new ArrayList<String>()
-if(statusChanged)
-    changes.add("status")
-if(changes.isEmpty()) {
+if(!statusChanged) {
     logger.info("No relevant changes for ${issue.key}")
     return
 }
 
-logger.info("Changed ${String.join(', ', changes)} for ${issue.key}")
+logger.info("Changed status of ${issue.key} to ${status}")
 
 // store status backup
 def result = put("/rest/api/3/issue/${issue.key}")
@@ -135,7 +132,7 @@ if(status.equals("Canceled") || status.equals("Decommissioned")) {
                 .asObject(Map)
 
             if(result.status < 200 || result.status > 204) {
-                logger.info("Could not get custoemr ${customer.key} (${result.status})")
+                logger.info("Could not get customer ${customer.key} (${result.status})")
                 continue
             }
 
@@ -143,7 +140,7 @@ if(status.equals("Canceled") || status.equals("Decommissioned")) {
         }
 
         // if the customer is in status Active
-        if(!customer.fields?.status?.name.equals("Active")) {
+        if(customer.fields?.status?.name.equals("Active")) {
             // get the possible transitions on the customer
             def transitions = [:]
             result = get("/rest/api/3/issue/${customer.key}/transitions")
