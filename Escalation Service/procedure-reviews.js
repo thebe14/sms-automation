@@ -76,28 +76,33 @@ def nextReview = procedure.fields[nextReviewId] as String
 def nextReviewDate = null != nextReview ? dateTimeFormatter.parse(nextReview) : null as Date
 
 // update next review datetime of the procedure
-if(null != nextReviewDate && null != reviewFrequency)
-    switch(reviewFrequency.toLowerCase()) {
-        case "weekly":
-            nextReviewDate.setDate(nextReviewDate.getDate() + 7)
-            break
+if(null != nextReviewDate) {
+    if(null == reviewFrequency)
+        // clear next review date, as a review was already started on this datetime and we cannot determine the next one
+        nextReviewDate = null
+    else
+        switch(reviewFrequency.toLowerCase()) {
+            case "weekly":
+                nextReviewDate.setDate(nextReviewDate.getDate() + 7)
+                break
 
-        case "monthly":
-            nextReviewDate.setMonth(nextReviewDate.getMonth() + 1)
-            break
+            case "monthly":
+                nextReviewDate.setMonth(nextReviewDate.getMonth() + 1)
+                break
 
-        case "quarterly":
-            nextReviewDate.setMonth(nextReviewDate.getMonth() + 3)
-            break
+            case "quarterly":
+                nextReviewDate.setMonth(nextReviewDate.getMonth() + 3)
+                break
 
-        case "semiannually":
-            nextReviewDate.setMonth(nextReviewDate.getMonth() + 6)
-            break
+            case "semiannually":
+                nextReviewDate.setMonth(nextReviewDate.getMonth() + 6)
+                break
 
-        case "annually":
-            nextReviewDate.setYear(nextReviewDate.getYear() + 1)
-            break
-    }
+            case "annually":
+                nextReviewDate.setYear(nextReviewDate.getYear() + 1)
+                break
+        }
+}
 
 result = put("/rest/api/3/issue/${issue.key}")
     .header("Content-Type", "application/json")
@@ -108,5 +113,12 @@ result = put("/rest/api/3/issue/${issue.key}")
     ])
     .asString()
 
-if(result.status < 200 || result.status >= 300)
+if(result.status < 200 || result.status >= 300) {
     logger.info("Could not update procedure ${issue.key} (${result.status})")
+    return
+}
+
+if(null != nextReviewDate)
+    logger.info("Scheduled next review for ${issue.key} to ${nextReviewDate}")
+else
+    logger.info("Cleared next review for ${issue.key}")

@@ -120,7 +120,7 @@ if(result.status < 200 || result.status > 204) {
     return
 }
 
-if(null != nextMeasurement)
+if(null != nextMeasurementDate)
     logger.info("Scheduled next measurement for ${issue.key} to ${nextMeasurementDate}")
 else
     logger.info("Cleared next measurement for ${issue.key}")
