@@ -64,40 +64,47 @@ def customFields = get("/rest/api/3/field")
 
 def dateTimeFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
-def frequencyId = customFields.find { it.name == 'Frequency' }?.id?.toString()
+def frequencyId = customFields.find { it.name == 'Measurement frequency' }?.id?.toString()
 def nextMeasurementId = customFields.find { it.name == 'Next measurement' }?.id?.toString()
 
 def frequency = kpi.fields[frequencyId]?.value as String
 def nextMeasurement = kpi.fields[nextMeasurementId] as String
 def nextMeasurementDate = null != nextMeasurement ? dateTimeFormatter.parse(nextMeasurement) : null as Date
 
+logger.info("frequency ${frequency}")
+
 // update the "Next measurement" field of the KPI ticket
-if(null != nextMeasurementDate && null != frequency)
-    switch(frequency.toLowerCase()) {
-        case "daily":
-            nextMeasurementDate.setDate(nextMeasurementDate.getDate() + 1)
-            break
+if(null != nextMeasurementDate) {
+    if(null == frequency)
+        // clear the "Next measurement" field, as we took a measurement on this datetime already
+        nextMeasurementDate = null;
+    else
+        switch(frequency.toLowerCase()) {
+            case "daily":
+                nextMeasurementDate.setDate(nextMeasurementDate.getDate() + 1)
+                break
 
-        case "weekly":
-            nextMeasurementDate.setDate(nextMeasurementDate.getDate() + 7)
-            break
+            case "weekly":
+                nextMeasurementDate.setDate(nextMeasurementDate.getDate() + 7)
+                break
 
-        case "monthly":
-            nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 1)
-            break
+            case "monthly":
+                nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 1)
+                break
 
-        case "quarterly":
-            nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 3)
-            break
+            case "quarterly":
+                nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 3)
+                break
 
-        case "semiannually":
-            nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 6)
-            break
+            case "semiannually":
+                nextMeasurementDate.setMonth(nextMeasurementDate.getMonth() + 6)
+                break
 
-        case "annually":
-            nextMeasurementDate.setYear(nextMeasurementDate.getYear() + 1)
-            break
-    }
+            case "annually":
+                nextMeasurementDate.setYear(nextMeasurementDate.getYear() + 1)
+                break
+        }
+}
 
 result = put("/rest/api/3/issue/${kpi.key}")
     .header("Content-Type", "application/json")
@@ -108,5 +115,12 @@ result = put("/rest/api/3/issue/${kpi.key}")
     ])
     .asString()
 
-if(result.status < 200 || result.status > 204)
-    logger.info("Could not update KPI ${issue.key} (${result.status})")
+if(result.status < 200 || result.status > 204) {
+    logger.info("Could not update KPI ${kpi.key} (${result.status})")
+    return
+}
+
+if(null != nextMeasurement)
+    logger.info("Scheduled next measurement for ${issue.key} to ${nextMeasurementDate}")
+else
+    logger.info("Cleared next measurement for ${issue.key}")
