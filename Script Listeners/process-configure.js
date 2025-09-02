@@ -253,6 +253,10 @@ def processStaffOldId = customFields.find { it.name == 'Process staff old' }?.id
 def smsProcess = (null != processCode) && processCode.equals("SMS")
 def smsCoordinationTeamId = smsProcess ? customFields.find { it.name == 'SMS coordination team' }?.id?.toString() : null
 def smsCoordinationTeamOldId = smsProcess ? customFields.find { it.name == 'SMS coordination team old' }?.id?.toString() : null
+def ictManagerId = smsProcess ? customFields.find { it.name == 'ICT manager' }?.id?.toString() : null
+def ictManagerOldId = smsProcess ? customFields.find { it.name == 'ICT manager old' }?.id?.toString() : null
+def supportStaffId = smsProcess ? customFields.find { it.name == 'IT support staff' }?.id?.toString() : null
+def supportStaffOldId = smsProcess ? customFields.find { it.name == 'IT support staff old' }?.id?.toString() : null
 
 def hrProcess = (null != processCode) && processCode.equals("HR")
 def financeControlManagerId = hrProcess ? customFields.find { it.name == 'Finance and control manager' }?.id?.toString() : null
@@ -267,10 +271,6 @@ def infosecRiskManagerId = ismProcess ? customFields.find { it.name == 'Informat
 def infosecRiskManagerOldId = ismProcess ? customFields.find { it.name == 'Information security risk manager old' }?.id?.toString() : null
 def dataProtectionOfficerId = ismProcess ? customFields.find { it.name == 'Data protection officer' }?.id?.toString() : null
 def dataProtectionOfficerOldId = ismProcess ? customFields.find { it.name == 'Data protection officer old' }?.id?.toString() : null
-def ictManagerId = ismProcess ? customFields.find { it.name == 'ICT manager' }?.id?.toString() : null
-def ictManagerOldId = ismProcess ? customFields.find { it.name == 'ICT manager old' }?.id?.toString() : null
-def supportStaffId = ismProcess ? customFields.find { it.name == 'IT support staff' }?.id?.toString() : null
-def supportStaffOldId = ismProcess ? customFields.find { it.name == 'IT support staff old' }?.id?.toString() : null
 
 def processOwner = issue.fields[smsProcess ? smsOwnerId : processOwnerId]?.accountId as String
 def processOwnerOld = issue.fields[processOwnerOldId] as String
@@ -305,18 +305,27 @@ if(!smsProcess && groupCompositionChanged(issue, processStaffId, processStaffOld
 }
 
 def smsCoordTeamChanged = false
+def ictManagerChanged = false
+def supportStaffChanged = false
 def financeControlManagerChanged = false
 def hrSpecialistsChanged = false
 def hrAdminAssistantChanged = false
 def infosecRiskManagerChanged = false
 def dataProtectionOfficerChanged = false
-def ictManagerChanged = false
-def supportStaffChanged = false
 switch(processCode) {
     case "SMS":
         if(groupCompositionChanged(issue, smsCoordinationTeamId, smsCoordinationTeamOldId)) {
             smsCoordTeamChanged = true
             changes.add("SMS coord team")
+        }
+        if((null == ictManager) != (null == ictManagerOld) || // both null or non-null
+           (null != ictManager && !ictManager.equals(ictManagerOld))) {
+            ictManagerChanged = true
+            changes.add("ICT manager")
+        }
+        if(groupCompositionChanged(issue, supportStaffId, supportStaffOldId)) {
+            supportStaffChanged = true
+            changes.add("IT support staff")
         }
         break
 
@@ -347,15 +356,6 @@ switch(processCode) {
            (null != dataProtectionOfficer && !dataProtectionOfficer.equals(dataProtectionOfficerOld))) {
             dataProtectionOfficerChanged = true
             changes.add("data protection officer")
-        }
-        if((null == ictManager) != (null == ictManagerOld) || // both null or non-null
-           (null != ictManager && !ictManager.equals(ictManagerOld))) {
-            ictManagerChanged = true
-            changes.add("ICT manager")
-        }
-        if(groupCompositionChanged(issue, supportStaffId, supportStaffOldId)) {
-            supportStaffChanged = true
-            changes.add("IT support staff")
         }
         break
 }
@@ -407,6 +407,18 @@ switch(processCode) {
             fieldsUpdate[(processOwnerId)] = processOwner
             fieldsUpdate[(processManagerId)] = processManager
         }
+        if(ictManagerChanged) {
+            def ictManagerName = issue.fields[ictManagerId]?.displayName as String
+            def users = [:]
+            users[ictManager] = ictManagerName
+            setUsersInGroup("ict-manager", users, jiraUser, jiraToken)
+            fieldsUpdate[(ictManagerOldId)] = ictManager
+        }
+        if(supportStaffChanged) {
+            def users = getUsersInField(issue, supportStaffId)
+            setUsersInGroup("it-support", users, jiraUser, jiraToken)
+            fieldsUpdate[(supportStaffOldId)] = duplicateMultiUserField(issue, supportStaffId)
+        }
         break
 
     case "HR":
@@ -445,18 +457,6 @@ switch(processCode) {
             users[dataProtectionOfficer] = dataProtectionOfficerName
             setUsersInGroup("ism-data-protection-officer", users, jiraUser, jiraToken)
             fieldsUpdate[(dataProtectionOfficerOldId)] = dataProtectionOfficer
-        }
-        if(ictManagerChanged) {
-            def ictManagerName = issue.fields[ictManagerId]?.displayName as String
-            def users = [:]
-            users[ictManager] = ictManagerName
-            setUsersInGroup("ict-manager", users, jiraUser, jiraToken)
-            fieldsUpdate[(ictManagerOldId)] = ictManager
-        }
-        if(supportStaffChanged) {
-            def users = getUsersInField(issue, supportStaffId)
-            setUsersInGroup("it-support", users, jiraUser, jiraToken)
-            fieldsUpdate[(supportStaffOldId)] = duplicateMultiUserField(issue, supportStaffId)
         }
         break
 }
