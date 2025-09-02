@@ -6,7 +6,7 @@
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype?.name?.toLowerCase()} ${issue.key}")
     return
 }
 
@@ -65,45 +65,11 @@ def getUsersInGroup(groupName, logMembers = false) {
     return ids
 }
 
-// determine value to select in field SMS process, based on the Jira project of the new issue
-def projectKey = issue.fields.project.key.toLowerCase() as String
+def projectKey = issue.fields.project?.key?.toLowerCase() as String
 def processOwnerGroup = "${projectKey}-process-owner"
 def processManagerGroup = "${projectKey}-process-manager"
-def process = null
 
-switch(projectKey.toUpperCase()) {
-    case "BA": process = "Budgeting and Accounting (BA)"; break
-    case "BDS": process = "Business Development and Stakeholder (BDS)"; break
-    case "CAPM": process = "Capacity Management (CAPM)"; break
-    case "CHARDM": process = "Change and Release Deployment Management (ChaRDM)"; break
-    case "COM": process = "Communications Management (COM)"; break
-    case "CONFM": process = "Configuration Management (CONFM)"; break
-    case "CSI": process = "Continual Improvement (CSI)"; break
-    case "CRM": process = "Customer Relationship Management (CRM)"; break
-    case "FA": process = "Finance Administration (FA)"; break
-    case "PROF": process = "Project Finance (PROF)"; break
-    case "HR": process = "Human Resources (HR)"; break
-    case "ISM": process = "Information Security Management (ISM)"; break
-    case "ISRM": process = "Incident and Service Request Management (ISRM)"; break
-    case "PM": process = "Problem Management (PM)"; break
-    case "PKM": process = "Project Knowledge Management (PKM)"; break
-    case "PPM": process = "Project Portfolio Management (PPM)"; break
-    case "PRM": process = "Project Management (PRM)"; break
-    case "RM": process = "Risk management (RM)"; break
-    case "SACM": process = "Service Availability and Continuity Management (SACM)"; break
-    case "SUPPM": process = "Supplier Relationship Management (SUPPM)"; break
-    case "SLM": process = "Service Level Management (SLM)"; break
-    case "SPM": process = "Service Portfolio Management (SPM)"; break
-    case "SRM": process = "Service Reporting Management (SRM)"; break
-    case "SMS": process = "Management System (SMS)"; break
-}
-
-if(null == process || process.isEmpty()) {
-    logger.info("Unknown process code ${projectKey.toUpperCase()}")
-    return
-}
-
-logger.info("Process: ${process}")
+logger.info("Process: ${projectKey.toUpperCase()}")
 
 // get custom fields
 def customFields = get("/rest/api/3/field")
@@ -112,7 +78,6 @@ def customFields = get("/rest/api/3/field")
     .findAll { (it as Map).custom } as List<Map>
 
 // get field values
-def processId = customFields.find { it.name == 'SMS process' }?.id?.toString()
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
 def stakeholdersId = customFields.find { it.name == 'Stakeholders' }?.id?.toString()
@@ -143,10 +108,9 @@ def result = put("/rest/api/3/issue/${issue.key}")
             (stakeholdersId): stakeholders,
             (processOwnerId): processOwner,
             (processManagerId): processManager,
-            (processId): null != process ? [value: process] : null,
         ],
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not update ${issue.fields.issuetype.name.toLowerCase()} ${issue.key} (${result.status})")
+    logger.info("Could not update ${issue.fields.issuetype?.name?.toLowerCase()} ${issue.key} (${result.status})")
