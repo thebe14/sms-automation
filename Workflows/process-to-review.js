@@ -350,9 +350,20 @@ if(result.status < 200 || result.status >= 300) {
 def newTicket = result.body as Map
 logger.info("Created process review ${newTicket.key}")
 
+// assign to process owner
+result = put("/rest/api/3/issue/${issue.key}")
+    .header("Content-Type", "application/json")
+    .body([
+        fields: [
+            assignee: assignee,
+        ],
+    ])
+    .asString()
+
+if(result.status < 200 || result.status > 204)
+    logger.info("Could not update process ${issue.key} (${result.status})")
+
 // add a comment about the new review that has started
-result = get('/rest/api/3/myself').asObject(Map)
-def currentUser = result.body as Map
 result = post("/rest/api/3/issue/${issue.key}/comment")
     .header("Content-Type", "application/json")
     .body([
