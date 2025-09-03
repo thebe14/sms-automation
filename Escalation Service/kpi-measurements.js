@@ -40,7 +40,7 @@ result = post("/rest/api/3/issue")
         update:[
             issuelinks: [[
                 add: [
-                    type: [ name: "KPI-Measurement" ],
+                    type: [ name: "Measurement" ],
                     inwardIssue: [ key: kpi.key ]
                 ]
             ]]

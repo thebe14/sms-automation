@@ -14,7 +14,7 @@ def links = issue.fields['issuelinks'] as List
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
     def linkedCustomer = link?.inwardIssue
-    if(null != linkTypeName && null != linkedCustomer && 0 == linkTypeName.compareToIgnoreCase("Customer-Complaint")) {
+    if(null != linkTypeName && null != linkedCustomer && 0 == linkTypeName.compareToIgnoreCase("Complaint")) {
         // found a linked customer, fetch its fields
         def result = get("/rest/api/3/issue/${linkedCustomer.key}").asObject(Map)
         def customer = result.body as Map

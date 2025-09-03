@@ -21,7 +21,7 @@ def projects = ""
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
     def linkedProject = link?.inwardIssue
-    if(null != linkTypeName && null != linkedProject && linkTypeName.equalsIgnoreCase("Project-Use Case")) {
+    if(null != linkTypeName && null != linkedProject && linkTypeName.equalsIgnoreCase("Use Case")) {
         // found a linked ticket, fetch its fields
         def result = get("/rest/api/3/issue/${linkedProject.key}").asObject(Map)
         def project = result.body as Map

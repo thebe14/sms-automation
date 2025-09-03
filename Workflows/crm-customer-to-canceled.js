@@ -14,7 +14,7 @@ def projects = []
 def links = issue.fields.issuelinks as Map
 
 for(def link : links)
-    if(link?.type.name.equals("Customer-Project") && null != link?.outwardIssue)
+    if(link?.type.name.equals("Project") && null != link?.outwardIssue)
         projects.add(link.outwardIssue)
 
 // for all linked projects...

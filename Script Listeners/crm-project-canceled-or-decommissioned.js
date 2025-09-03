@@ -53,7 +53,7 @@ if(status.equals("Canceled")) {
     def links = issue.fields.issuelinks as Map
 
     for(def link : links)
-        if(link?.type.name.equals("Project-Use Case") && null != link?.outwardIssue)
+        if(link?.type.name.equals("Use Case") && null != link?.outwardIssue)
             usecases.add(link.outwardIssue)
 
     // for all linked usecases...
@@ -120,7 +120,7 @@ if(status.equals("Canceled") || status.equals("Decommissioned")) {
     def links = issue.fields.issuelinks as Map
 
     for(def link : links)
-        if(link?.type.name.equals("Customer-Project") && null != link?.inwardIssue)
+        if(link?.type.name.equals("Project") && null != link?.inwardIssue)
             customers.add(link.inwardIssue)
 
     // for all linked customers...

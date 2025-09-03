@@ -53,7 +53,7 @@ def result = post("/rest/api/3/issue")
         update:[
             issuelinks: [[
                 add: [
-                    type: [ name: "Customer-Complaint" ],
+                    type: [ name: "Complaint" ],
                     inwardIssue: [ key: issue.key ]
                 ]
             ]]

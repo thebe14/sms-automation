@@ -14,7 +14,7 @@ def projects = 0
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
     def linkedProject = link?.outwardIssue
-    if(null != linkTypeName && null != linkedProject && linkTypeName.equalsIgnoreCase("Customer-Project"))
+    if(null != linkTypeName && null != linkedProject && linkTypeName.equalsIgnoreCase("Project"))
         // found a linked project
         projects++
 }

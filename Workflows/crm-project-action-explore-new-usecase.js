@@ -38,7 +38,7 @@ def result = post("/rest/api/3/issue")
         update:[
             issuelinks: [[
                 add: [
-                    type: [ name: "Project-Use Case" ],
+                    type: [ name: "Use Case" ],
                     inwardIssue: [ key: issue.key ]
                 ]
             ]]

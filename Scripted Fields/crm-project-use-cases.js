@@ -14,7 +14,7 @@ def useCases = 0
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
     def linkedUseCase = link?.outwardIssue
-    if(null != linkTypeName && null != linkedUseCase && linkTypeName.equalsIgnoreCase("Project-Use Case"))
+    if(null != linkTypeName && null != linkedUseCase && linkTypeName.equalsIgnoreCase("Use Case"))
         // found a linked use case
         useCases++
 }

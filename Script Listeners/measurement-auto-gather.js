@@ -26,7 +26,7 @@ def kpi = null
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
     def linkedKPI = link?.inwardIssue
-    if(null != linkTypeName && null != linkedKPI && linkTypeName.equalsIgnoreCase("KPI-Measurement")) {
+    if(null != linkTypeName && null != linkedKPI && linkTypeName.equalsIgnoreCase("Measurement")) {
         // found a linked KPI ticket
         kpi = linkedKPI
         break // ignore all but the first
