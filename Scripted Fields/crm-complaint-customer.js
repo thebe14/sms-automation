@@ -4,7 +4,7 @@
 
 // check and only calculate this field for Complaint tickets
 def type = issue.fields['issuetype']?.name as String
-if(null == type || type.isEmpty() || 0 != type.compareToIgnoreCase("Complaint"))
+if(null == type || type.isEmpty() || !type.equals("Complaint"))
     return ""
 
 // find the first Customer ticket linked with an inward "is complaint from" relationship

@@ -60,11 +60,13 @@ switch(reviewFrequency.toLowerCase()) {
         else if(month >= 10)
             quarter = 4
         reviewDate = "${now.get(Calendar.YEAR)}.Q${quarter}"
+        break
 
     case "semiannually":
         def month = 1 + now.get(Calendar.MONTH)
         def half = month < 7 ? 1 : 2
         reviewDate = "${now.get(Calendar.YEAR)}-${half}"
+        break
 
     case "annually":
         reviewDate = "${now.get(Calendar.YEAR)}"

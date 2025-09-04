@@ -5,7 +5,7 @@
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype?name?toLowerCase()} ${issue.key}")
     return
 }
 
