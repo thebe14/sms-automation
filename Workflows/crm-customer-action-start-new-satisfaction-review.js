@@ -3,9 +3,10 @@
 // run as: Initiating user
 // conditions: true
 
-def summary = issue.fields['summary'] as String
+String summary = issue.fields['summary']
+String issueType = issue.fields?.issuetype?.name
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype?.name?.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${issueType.toLowerCase()} ${issue.key}")
     return
 }
 
