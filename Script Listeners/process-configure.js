@@ -276,6 +276,8 @@ def processOwner = issue.fields[smsProcess ? smsOwnerId : processOwnerId]?.accou
 def processOwnerOld = issue.fields[processOwnerOldId] as String
 def processManager = issue.fields[smsProcess ? smsManagerId : processManagerId]?.accountId as String
 def processManagerOld = issue.fields[processManagerOldId] as String
+def ictManager = smsProcess ? issue.fields[ictManagerId]?.accountId : null as String
+def ictManagerOld = smsProcess ? issue.fields[ictManagerOldId] : null as String
 def financeControlManager = hrProcess ? issue.fields[financeControlManagerId]?.accountId : null as String
 def financeControlManagerOld = hrProcess ? issue.fields[financeControlManagerOldId] : null as String
 def hrAdminAssistant = hrProcess ? issue.fields[hrAdminAssistantId]?.accountId : null as String
@@ -284,8 +286,6 @@ def infosecRiskManager = ismProcess ? issue.fields[infosecRiskManagerId]?.accoun
 def infosecRiskManagerOld = ismProcess ? issue.fields[infosecRiskManagerOldId] : null as String
 def dataProtectionOfficer = ismProcess ? issue.fields[dataProtectionOfficerId]?.accountId : null as String
 def dataProtectionOfficerOld = ismProcess ? issue.fields[dataProtectionOfficerOldId] : null as String
-def ictManager = ismProcess ? issue.fields[ictManagerId]?.accountId : null as String
-def ictManagerOld = ismProcess ? issue.fields[ictManagerOldId] : null as String
 
 def staffChanged = false
 def ownerChanged = (null == processOwner) != (null == processOwnerOld) || // both null or non-null
@@ -378,6 +378,8 @@ if(ownerChanged && null != processCode) {
     users[processOwner] = processOwnerName
     setUsersInGroup(processOwnerGroup, users, jiraUser, jiraToken)
     fieldsUpdate[(processOwnerOldId)] = processOwner
+    if(processCode.equals("SMS"))
+        fieldsUpdate[(processOwnerId)] = [ accountId: processOwner ]
 }
 
 if(managerChanged && null != processCode) {
@@ -387,6 +389,8 @@ if(managerChanged && null != processCode) {
     users[processManager] = processManagerName
     setUsersInGroup(processManagerGroup, users, jiraUser, jiraToken)
     fieldsUpdate[(processManagerOldId)] = processManager
+    if(processCode.equals("SMS"))
+        fieldsUpdate[(processManagerId)] = [ accountId: processManager ]
 }
 
 if(staffChanged &&  null != processCode) {
