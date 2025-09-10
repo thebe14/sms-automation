@@ -70,6 +70,7 @@ def result = post("/rest/api/3/issue")
             issuetype: [ name: "Customer Satisfaction Review" ],
             summary: "Customer satisfaction review for ${customerName} on ${reviewDate}",
             assignee: [ accountId: customerOwner ],
+            (customerOwnerId): [ accountId: customerOwner ],
             (reviewOwnerId): [ accountId: customerOwner ],
         ],
         update:[
