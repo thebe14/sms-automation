@@ -10,10 +10,10 @@ work types that support the entities of the processes in the Service Management
 System (SMS).
 
 You can find these in the _Jira Admin Settings_ of the Jira site where SMS is
-deployed, section **Apps**, then navigate to _ScriptRunner/Script Listeners_.
+deployed, section **Apps**, then navigate to _ScriptRunner_.
 
 [ScriptRunner for Jira Cloud](https://docs.adaptavist.com/sr4jc/latest/get-started)
-must the added to the Jira site for these Groovy scripts to function. 
+must be added to the Jira site for these Groovy scripts to function. 
 
 > Note that the automations that power the work types (aka ticket types) in the
 > SMS Jira are either implemented with **Jira-native rules** (see the
