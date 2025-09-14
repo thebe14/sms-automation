@@ -5,7 +5,7 @@
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype?name?toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
     return
 }
 
@@ -17,11 +17,11 @@ for(def link : links)
         policies.add(link.inwardIssue)
 
 if(policies.isEmpty()) {
-    logger.info("Warning: Review ${issue.key} not linked to a policy")
+    logger.warn("Warning: Review ${issue.key} not linked to a policy")
     return
 }
 if(policies.size() > 1)
-    logger.info("Warning: Review ${issue.key} linked to multiple policies")
+    logger.warn("Warning: Review ${issue.key} linked to multiple policies")
 
 def policy = policies[0]
 

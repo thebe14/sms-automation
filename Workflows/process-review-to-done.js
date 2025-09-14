@@ -17,11 +17,11 @@ for(def link : links)
         processes.add(link.inwardIssue)
 
 if(processes.isEmpty()) {
-    logger.info("Warning: Review ${issue.key} not linked to a process")
+    logger.warn("Warning: Review ${issue.key} not linked to a process")
     return
 }
 if(processes.size() > 1)
-    logger.info("Warning: Review ${issue.key} linked to multiple processes")
+    logger.warn("Warning: Review ${issue.key} linked to multiple processes")
 
 def process = processes[0]
 

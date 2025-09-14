@@ -17,11 +17,11 @@ for(def link : links)
         procedures.add(link.inwardIssue)
 
 if(procedures.isEmpty()) {
-    logger.info("Warning: Review ${issue.key} not linked to a procedure")
+    logger.warn("Warning: Review ${issue.key} not linked to a procedure")
     return
 }
 if(procedures.size() > 1)
-    logger.info("Warning: Review ${issue.key} linked to multiple procedures")
+    logger.warn("Warning: Review ${issue.key} linked to multiple procedures")
 
 def procedure = procedures[0]
 
