@@ -21,6 +21,8 @@ def customerNameId = customFields.find { it.name == 'Customer name' }?.id?.toStr
 def customerOwnerId = customFields.find { it.name == 'Customer owner' }?.id?.toString()
 def reviewOwnerId = customFields.find { it.name == 'Review owner' }?.id?.toString()
 def reviewFrequencyId = customFields.find { it.name == 'Customer satisfaction review frequency' }?.id?.toString()
+def projectNameId = customFields.find { it.name == 'Project name' }?.id?.toString()
+def nameOfProjectId = customFields.find { it.name == 'Name of project' }?.id?.toString()
 
 def projectKey = issue.fields.project.key as String
 def customerName = issue.fields[customerNameId] as String
@@ -90,11 +92,11 @@ if(result.status < 200 || result.status >= 300) {
     return
 }
 
-def newTicket = result.body as Map
-logger.info("Created satisfaction review ${newTicket.key} for customer ${customerName}")
+def newSatReview = result.body as Map
+logger.info("Created satisfaction review ${newSatReview.key} for customer ${customerName}")
 
 // add a comment about the new satisfaction review that was created
-result = post("/rest/api/3/issue/${issue.key}/comment") 
+result = post("/rest/api/3/issue/${issue.key}/comment")
     .header("Content-Type", "application/json")
     .body([
         body: [
@@ -109,10 +111,10 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
                     ],
                     [
                         type: "text",
-                        text: "${newTicket.key}",
+                        text: "${newSatReview.key}",
                         marks: [[
                             type: "link",
-                            attrs: [ href: "/browse/${newTicket.key}" ]
+                            attrs: [ href: "/browse/${newSatReview.key}" ]
                         ]]
                     ]
                 ]
@@ -123,3 +125,95 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not add comment to customer ${issue.key} (${result.status})")
+
+// create Achievement tickets for all active projects of this customer
+def projects = []
+def links = issue.fields?.issuelinks as Map
+
+for(def link : links)
+    if(link?.type.name.equals("Project") && null != link?.outwardIssue)
+        projects.add(link.outwardIssue)
+
+// for all linked projects...
+for(def project : projects) {
+    // if we don't have the status of the project, get it
+    if(null == project.fields?.status || null == project.fields[projectNameId]) {
+        result = get("/rest/api/3/issue/${project.key}")
+            .header("Content-Type", "application/json")
+            .asObject(Map)
+
+        if(result.status < 200 || result.status > 204) {
+            logger.info("Could not get project ${project.key} (${result.status})")
+            continue
+        }
+
+        project = result.body
+    }
+
+    // if the project is in preparation or in production
+    if(!['To Do', 'Canceled', 'Decommissioned'].contains(project.fields?.status?.name)) {
+        // create new Achievement ticket for it
+        def projectName = project.fields[projectNameId] as String
+        def inProduction = ['In Production', 'Handover'].contains(project.fields?.status?.name)
+        result = post("/rest/api/3/issue")
+            .header("Content-Type", "application/json")
+            .body([
+                fields:[
+                    project: [ key: projectKey ],
+                    issuetype: [ name: "Achievement" ],
+                    summary: "Achievement for ${projectName} in ${inProduction ? 'production' : 'preparation'} on ${reviewDate}",
+                    assignee: [ accountId: customerOwner ],
+                    (reviewOwnerId): [ accountId: customerOwner ],
+                    (nameOfProjectId): projectName,
+                ],
+                update:[
+                    issuelinks: [[
+                        add: [
+                            type: [ name: "Achievement" ],
+                            inwardIssue: [ key: newSatReview.key ]
+                        ]
+                    ]]
+                ],
+            ])
+            .asObject(Map)
+
+        if(result.status < 200 || result.status > 204) {
+            logger.info("Could not create achievement for project ${projectName} (${result.status})")
+            continue
+        }
+
+        def newAchievement = result.body as Map
+        logger.info("Created achievement ${newAchievement.key} for project ${projectName}")
+
+        // add a comment to the satisfaction review about the new achievement that was created
+        result = post("/rest/api/3/issue/${newSatReview.key}/comment") 
+            .header("Content-Type", "application/json")
+            .body([
+                body: [
+                    type: "doc",
+                    version: 1,
+                    content: [[
+                        type: "paragraph",
+                        content: [
+                            [
+                                type: "text",
+                                text: "New achievement was created for ${projectName}, see ",
+                            ],
+                            [
+                                type: "text",
+                                text: "${newAchievement.key}",
+                                marks: [[
+                                    type: "link",
+                                    attrs: [ href: "/browse/${newAchievement.key}" ]
+                                ]]
+                            ]
+                        ]
+                    ]]
+                ]
+            ])
+            .asString()
+
+        if(result.status < 200 || result.status > 204)
+            logger.info("Could not add comment to satisfaction review ${newSatReview.key} (${result.status})")
+    }
+}
