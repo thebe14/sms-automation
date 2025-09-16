@@ -16,19 +16,17 @@ for(def link : links) {
     if(null != linkTypeName && null != linkedCustomer && linkTypeName.equalsIgnoreCase("Review")) {
         // found a linked customer, fetch its fields
         def result = get("/rest/api/3/issue/${linkedCustomer.key}").asObject(Map)
+        if(result.status < 200 || result.status > 204) {
+            logger.info("Could not get customer ${linkedCustomer.key} (${result.status})")
+            continue
+        }
+
         def customer = result.body as Map
+        if(!customer || !customer.fields.issuetype?.name?.equals("Customer"))
+            // linked ticket is not a Customer
+            continue
 
-        // get name of customer from custom field
-        def customFields = get("/rest/api/3/field")
-            .header("Accept", "application/json")
-            .asObject(List)
-            .body
-            .findAll { (it as Map).custom } as List<Map>
-
-        def customerNameId = customFields.find { it.name == 'Customer name' }?.id?.toString()
-        def customerName = customer.fields[customerNameId] as String
-        if(null != customerName)
-            return customerName
+        return customer.key
     }
 }
 

@@ -12,8 +12,8 @@ and this project adheres to
 - Added Project ticket action to create new use case
 - Move clear resolution on reopening tickets from rule to a Script Listener
 - Init Customer ticket by copying satisfaction review frequency from Process CRM ticket
-- Create and link Procedure Review ticket when a Procedure enters status InReview
-- Create and link Policy Review ticket when a Policy enters status InReview
+- Fix create and link Procedure Review ticket when a Procedure enters status InReview
+- Fix create and link Policy Review ticket when a Policy enters status InReview
 - Cancel all linked Projects that are not finalized when Customer is canceled
 - Cancel all linked Use Cases when Project is canceled
 - Activate linked Client(s) when a Project goes to InProduction

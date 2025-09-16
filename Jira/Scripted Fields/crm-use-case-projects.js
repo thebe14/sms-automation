@@ -3,16 +3,9 @@
 // type: short text
 
 // check and only calculate this field for Use Case tickets
-def type = issue.fields['issuetype']?.name as String
+def type = issue.fields.issuetype?.name as String
 if(null == type || type.isEmpty() || !type.equalsIgnoreCase("Use Case"))
     return ""
-
-// get all custom fields
-def customFields = get("/rest/api/3/field")
-    .header("Accept", "application/json")
-    .asObject(List)
-    .body
-    .findAll { (it as Map).custom } as List<Map>
 
 // find the Project tickets linked with a inward "is use case for" relationship
 def links = issue.fields['issuelinks'] as List
@@ -26,13 +19,10 @@ for(def link : links) {
         def result = get("/rest/api/3/issue/${linkedProject.key}").asObject(Map)
         def project = result.body as Map
 
-        // get the name of project
-        def projectNameId = customFields.find { it.name == 'Project name' }?.id?.toString()
-        def projectName = project.fields[projectNameId] as String
         if(null == projects || projects.isEmpty())
-            projects = projectName
+            projects = project.key
         else
-            projects = "${projects}, ${projectName}"
+            projects = "${projects}\n${project.key}"
     }
 }
 

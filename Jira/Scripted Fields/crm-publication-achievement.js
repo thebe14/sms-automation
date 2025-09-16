@@ -9,7 +9,6 @@ if(null == type || type.isEmpty() || !type.equalsIgnoreCase("Publication"))
 
 // find the first Achievement ticket linked with a "relates to" relationship
 def links = issue.fields['issuelinks'] as List
-def customFields = null
 
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
@@ -19,23 +18,17 @@ for(def link : links) {
     if(null != linkTypeName && null != linkedTicket && linkTypeName.equalsIgnoreCase("Relates")) {
         // found a linked ticket, fetch its fields
         def result = get("/rest/api/3/issue/${linkedTicket.key}").asObject(Map)
+        if(result.status < 200 || result.status > 204) {
+            logger.info("Could not get achievement ${linkedTicket.key} (${result.status})")
+            continue
+        }
+        
         def achievement = result.body as Map
         if(!achievement || !achievement.fields.issuetype?.name?.equals("Achievement"))
             // linked ticket is not an Achievement
             continue
 
-        if(null == customFields)
-            // get name of achievement from custom field
-            customFields = get("/rest/api/3/field")
-                .header("Accept", "application/json")
-                .asObject(List)
-                .body
-                .findAll { (it as Map).custom } as List<Map>
-
-        def platformNameId = customFields.find { it.name == 'Name of project' }?.id?.toString()
-        def platformName = achievement.fields[platformNameId] as String
-        if(null != platformName)
-            return platformName
+        return achievement.key
     }
 }
 

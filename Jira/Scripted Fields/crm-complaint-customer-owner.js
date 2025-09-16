@@ -3,13 +3,14 @@
 // type: short text
 
 // check and only calculate this field for Complaint tickets
-def type = issue.fields['issuetype']?.name as String
+def type = issue.fields.issuetype?.name as String
 if(null == type || type.isEmpty() ||!type.equalsIgnoreCase("Complaint"))
     return ""
 
 // find the first Customer ticket linked with an inward "is complaint from" relationship
 def customerOwnerName = ""
 def links = issue.fields['issuelinks'] as List
+def customFields = null
 
 for(def link : links) {
     def linkTypeName = link?.type?.name as String
@@ -19,16 +20,18 @@ for(def link : links) {
         def result = get("/rest/api/3/issue/${linkedCustomer.key}").asObject(Map)
         def customer = result.body as Map
 
-        // get name of customer owner from custom field
-        def customFields = get("/rest/api/3/field")
-            .header("Accept", "application/json")
-            .asObject(List)
-            .body
-            .findAll { (it as Map).custom } as List<Map>
+        if(null == customFields)
+            // get name of customer owner from custom field
+            customFields = get("/rest/api/3/field")
+                .header("Accept", "application/json")
+                .asObject(List)
+                .body
+                .findAll { (it as Map).custom } as List<Map>
 
         def customerOwnerId = customFields.find { it.name == 'Customer owner' }?.id?.toString()
         def customerOwner = customer.fields[customerOwnerId]
         customerOwnerName = null != customerOwner ? customerOwner.displayName : ""
+        break
     }
 }
 
