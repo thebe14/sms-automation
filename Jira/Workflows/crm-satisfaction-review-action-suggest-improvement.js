@@ -46,7 +46,7 @@ def userLocations = issue.fields[userLocationsId]
 if(null == reviewOwner)
     reviewOwner = customerOwner
 
-// create new Improvement Suggestion ticket
+// TODO create new Improvement Suggestion ticket
 def result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
