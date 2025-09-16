@@ -7,6 +7,12 @@ The format is based on
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.0.3
+- Moved the init of a Process Review ticket from the workflow transition handler to the script listener for ticket creation
+- Automatically create Customer Satisfaction Review tickets according to configured schedule
+- Overhauled all scripted fields that return linked entities to return ticket key(s) instead
+- Added entity diagram
+
 ## 1.0.2
 - Added Customer ticket action to register complaint
 - Added Project ticket action to create new use case
@@ -18,7 +24,7 @@ and this project adheres to
 - Cancel all linked Use Cases when Project is canceled
 - Activate linked Client(s) when a Project goes to InProduction
 - Attempt to deactivate Customer when Project canceled or decommissioned
-- Automatically create Process/Procedure/policy Review tickets according to review fields
+- Automatically create Process/Procedure/Policy Review tickets according to configured schedule
 - Added validators to Customer transitions to Active/Inactive
 - Added safeguards to Process/Procedure/Policy tickets with set next review but with empty review frequency
 - Move Process/Procedure/Policy to status Implementation when linked review ticket enters status Done
