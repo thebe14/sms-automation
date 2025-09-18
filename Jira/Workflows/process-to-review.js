@@ -25,21 +25,11 @@ if(null == processCode) {
     return
 }
 
-def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
-def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
 def reviewFrequencyId = customFields.find { it.name == 'Review process' }?.id?.toString()
 
-def processOwner = issue.fields[processOwnerId]?.accountId as String
-def processManager = issue.fields[processManagerId]?.accountId as String
 def reviewFrequency = issue.fields[reviewFrequencyId]?.value as String
 
 // create Process Review ticket in the correct Jira project
-def assignee = null
-if(null != processOwner)
-    assignee = [ accountId: processOwner ]
-else if(null != processManager)
-    assignee = [ accountId: processManager ]
-
 def now = Calendar.instance
 def reviewDate = null
 
@@ -72,14 +62,13 @@ switch(reviewFrequency.toLowerCase()) {
         break
 }
 
-result = post("/rest/api/3/issue")
+def result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
             project: [ key: processCode ],
             issuetype: [ name: "Process Review" ],
             summary: "Review of process ${processCode} on ${reviewDate}",
-            assignee: assignee,
         ],
     ])
     .asObject(Map)

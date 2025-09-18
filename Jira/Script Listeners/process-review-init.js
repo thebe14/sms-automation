@@ -140,6 +140,14 @@ if(null != processManager) {
     processManager = [ accountId: processManager ]
 }
 
+def assignee = issue.fields.assignee
+if(null == assignee) {
+    if(null != processOwner)
+        assignee = [ accountId: processOwner ]
+    else if(null != processManager)
+        assignee = [ accountId: processManager ]
+}
+
 // find and fetch the correct process ticket
 def process = getProcess(processCode, ["*all"])
 if(null == process)
@@ -391,10 +399,10 @@ result = put("/rest/api/3/issue/${issue.key}")
     .body([
         fields:[
             description: processReviewGuide,
+            assignee: assignee,
             (stakeholdersId): stakeholders,
             (processOwnerId): processOwner,
             (processManagerId): processManager,
-
             (definitionUpdatesId): definitionUpdates,
             (policyUpdatesId): policyUpdates,
             (procedureUpdatesId): procedureUpdates,

@@ -4,8 +4,9 @@
 // conditions: true
 
 def summary = issue.fields['summary'] as String
+def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${ticketType} ${issue.key}")
     return
 }
 
@@ -24,21 +25,11 @@ if(null == procedureCode) {
     return
 }
 
-def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
-def processManagerId = customFields.find { it.name == 'Process manager' }?.id?.toString()
 def reviewFrequencyId = customFields.find { it.name == 'Review frequency' }?.id?.toString()
 
-def processOwner = issue.fields[processOwnerId]?.accountId as String
-def processManager = issue.fields[processManagerId]?.accountId as String
 def reviewFrequency = issue.fields[reviewFrequencyId]?.value as String
 
 // create Procedure Review ticket in the same Jira project
-def assignee = null
-if(null != processOwner)
-    assignee = [ accountId: processOwner ]
-else if(null != processManager)
-    assignee = [ accountId: processManager ]
-
 def now = Calendar.instance
 def reviewDate = null
 
@@ -82,10 +73,9 @@ def result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
-            project: [ key: issue.fields['project']?.key ],
+            project: [ key: issue.fields.project?.key ],
             issuetype: [ name: "Procedure Review" ],
             summary: "Review of procedure ${procedureCode} on ${reviewDate}",
-            assignee: assignee,
         ],
         update:[
             issuelinks: [[
