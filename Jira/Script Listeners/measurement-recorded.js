@@ -20,16 +20,24 @@ def customFields = get("/rest/api/3/field")
     .findAll { (it as Map).custom } as List<Map>
 
 // get field values
+def statusOldId = customFields.find { it.name == 'Status old' }?.id?.toString()
 def measuredValueId = customFields.find { it.name == 'Measured value' }?.id?.toString()
 def measuredValueOldId = customFields.find { it.name == 'Measured value old' }?.id?.toString()
 
+def status = issue.fields.status.name as String
+def statusOld = issue.fields[statusOldId] as String
 def measuredValue = issue.fields[measuredValueId] as String
 def measuredValueOld = issue.fields[measuredValueOldId] as String
+
+def statusChanged = (null == status) != (null == statusOld) || // both null or non-null
+                    (null != status && !status.equalsIgnoreCase(statusOld))
 
 def measurementChanged = (null == measuredValue) != (null == measuredValueOld) || // both null or non-null
                          (null != measuredValue && !measuredValue.equalsIgnoreCase(measuredValueOld))
 
 def changes = new ArrayList<String>()
+if(statusChanged)
+    changes.add("status")
 if(measurementChanged)
     changes.add("measurement")
 if(changes.isEmpty()) {
@@ -57,13 +65,31 @@ if(null == kpi) {
     return
 }
 
+def result = get("/rest/api/3/issue/${kpi.key}") 
+    .header("Content-Type", "application/json")
+    .asObject(Map)
+
+if(result.status < 200 || result.status > 204) {
+    logger.info("Could not get KPI ${kpi.key} (${result.status})")
+    return
+}
+
+kpi = result.body
+
+def targetId = customFields.find { it.name == 'Target' }?.id?.toString()
+def targetValueId = customFields.find { it.name == 'Target value' }?.id?.toString()
+
+def target = kpi.fields[targetId] as String
+
 // store field backups on the ticket
-def result = put("/rest/api/3/issue/${issue.key}") 
+result = put("/rest/api/3/issue/${issue.key}") 
     .queryString("overrideScreenSecurity", Boolean.TRUE)
     .header("Content-Type", "application/json")
     .body([
         fields:[
+            (targetValueId): target,
             (measuredValueOldId): measuredValue,
+            (statusOldId): status,
         ],
     ])
     .asString()
@@ -77,7 +103,7 @@ def lastMeasuredOnId = customFields.find { it.name == 'Last measured on' }?.id?.
 
 def dateTimeFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
 
-result = put("/rest/api/3/issue/${kpi.key}")
+result = put("/rest/api/3/issue/${kpi.key}?returnIssue=true")
     .header("Content-Type", "application/json")
     .body([
         fields: [
@@ -85,7 +111,64 @@ result = put("/rest/api/3/issue/${kpi.key}")
             (lastMeasuredOnId): dateTimeFormatter.format(new Date())
         ]
     ])
-    .asObject(Map)
+    .asString()
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not update KPI ${issue.key} (${result.status})")
+    logger.info("Could not update KPI ${kpi.key} (${result.status})")
+
+// check if the KPI should be escalated
+def kpiStatus = kpi.fields.status.name as String
+if(status.equals("Validated") && kpiStatus.equals("Active")) {
+    // already escalated nothing else to do
+
+    def escalateConditionId = customFields.find { it.name == 'Condition of escalation' }?.id?.toString()
+    def escalateCondition = kpi.fields[escalateConditionId] as String
+    def targetIncluded = escalateCondition.contains("{target}")
+    def escalateExpression = targetIncluded ? escalateCondition.replaceAll(/\{target\}/, "${target}") : "${measuredValue} ${escalateCondition}"
+
+    escalateExpression = escalateExpression.replaceAll(/[^\d\.\+\-\*\/\(\)\%\<\>\= \&\|\!]/, "")
+
+    logger.info("Escalate condition: ${escalateExpression}")
+    def escalateNow = evaluate(escalateExpression)
+    if(!escalateNow)
+        return
+
+    // get the possible transitions on the KPI
+    def transitions = [:]
+    result = get("/rest/api/3/issue/${kpi.key}/transitions")
+        .header("Accept", "application/json")
+        .asObject(Map)
+
+    if(result.status < 200 || result.status > 204) {
+        logger.info("Could not get transitions of ${kpi.key} (${result.status})")
+        return
+    }
+
+    for(def transition in result.body?.transitions)
+        transitions[transition.name] = transition.id
+
+    def transName = "Escalate to process owner"
+    def transId = transitions[transName]
+
+    if(null == transId) {
+        logger.info("${transName} transition not available on ${kpi.key}")
+        return
+    }
+
+    // escalate KPI
+    result = post("/rest/api/3/issue/${kpi.key}/transitions")
+        .header("Content-Type", "application/json")
+        .body([
+            transition: [
+                id: transId,
+            ]
+        ])
+        .asString()
+
+    if(result.status < 200 || result.status > 204) {
+        logger.info("Could not transition KPI ${kpi.key} via ${transName} (${result.status})")
+        return
+    }
+
+    logger.info("Escalated KPI ${kpi.key} to process owner")
+}
