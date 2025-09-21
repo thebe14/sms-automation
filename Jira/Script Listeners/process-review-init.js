@@ -15,7 +15,7 @@ if(summary.toLowerCase().trim() == "test") {
  * Fetch and return all users in a Jira group
  * @param groupName is the name of a user group in Jira
  * @param logMembers controls whether to log the members of the group
- * @returns array of user, null or error
+ * @returns array of users with { id, name }, null or error
  */
 def getUsersInGroup(groupName, logMembers = false) {
     // first, get the group Id
@@ -51,11 +51,11 @@ def getUsersInGroup(groupName, logMembers = false) {
         return null
     }
 
-    def ids = []
+    def users = []
     def names = []
     def groupMembers = result.body as Map
     for(def user : groupMembers.values) {
-        ids.add(user["accountId"])
+        users.add([ id: user["accountId"], name: user["displayName"] ])
         if(logMembers)
             names.add(user["displayName"]);
     }
@@ -63,7 +63,7 @@ def getUsersInGroup(groupName, logMembers = false) {
     if(logMembers)
         logger.info("Group ${groupName}: ${names}")
 
-    return ids
+    return users
 }
 
 /***
@@ -132,20 +132,20 @@ def processManager = processManagers?.find()
 
 def stakeholders = []
 if(null != processOwner) {
-    stakeholders.add([ id: processOwner ])
-    processOwner = [ accountId: processOwner ]
+    stakeholders.add([ id: processOwner.id ])
+    processOwner = [ accountId: processOwner.id ]
 }
 if(null != processManager) {
-    stakeholders.add([ id: processManager ])
-    processManager = [ accountId: processManager ]
+    stakeholders.add([ id: processManager.id ])
+    processManager = [ accountId: processManager.id ]
 }
 
 def assignee = issue.fields.assignee
 if(null == assignee) {
     if(null != processOwner)
-        assignee = [ accountId: processOwner ]
+        assignee = processOwner
     else if(null != processManager)
-        assignee = [ accountId: processManager ]
+        assignee = processManager
 }
 
 // find and fetch the correct process ticket

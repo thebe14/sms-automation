@@ -8,8 +8,12 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 1.0.3
+- Added auto-escalation of active KPIs when the escalation condition is true on validated Measurement
+- Automatically escalate KPIs higher to SMS owner after period configured on the Process SMS ticket
 - Moved the init of a Process Review ticket from the workflow transition handler to the script listener for ticket creation
+- Moved the assignment of a Process/Procedure/Policy Review ticket from the workflow transition handler to the script listener for ticket creation
 - Automatically create Customer Satisfaction Review tickets according to configured schedule
+- Automatically create Customer Database Review tickets according to configured schedule
 - Overhauled all scripted fields that return linked entities to return ticket key(s) instead
 - Added entity diagram
 

@@ -12,7 +12,7 @@ if(null == parameters.groupName || parameters.groupName.isBlank())
  * Fetch and return all users in a Jira group
  * @param groupName is the name of a user group in Jira
  * @param logMembers controls whether to log the members of the group
- * @returns array of users, null or error
+ * @returns array of users with { id, name }, null or error
  */
 def getUsersInGroup(groupName, logMembers = false) {
     // first, get the group Id
@@ -52,7 +52,7 @@ def getUsersInGroup(groupName, logMembers = false) {
     def names = []
     def groupMembers = result.body as Map
     for(def user : groupMembers.values) {
-        users.add(accountId: user["accountId"], displayName: user["displayName"])
+        users.add([ id: user["accountId"], name: user["displayName"] ])
         if(logMembers)
             names.add(user["displayName"]);
     }
@@ -64,10 +64,10 @@ def getUsersInGroup(groupName, logMembers = false) {
 }
 
 def text = "" as String
-def users = getUsersInGroup(parameters.groupName, true)
+def users = getUsersInGroup(parameters.groupName)
 
 if(null != users)
     for(def user in users)
-        text = "${text}${text.isBlank() ? "" : "<br/>"}${user.displayName}"
+        text = "${text}${text.isBlank() ? "" : "<br/>"}${user.name}"
 
 return text

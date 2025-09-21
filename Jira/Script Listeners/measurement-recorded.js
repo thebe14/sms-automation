@@ -102,13 +102,14 @@ def lastMeasuredValueId = customFields.find { it.name == 'Last measured value' }
 def lastMeasuredOnId = customFields.find { it.name == 'Last measured on' }?.id?.toString()
 
 def dateTimeFormatter = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
+def now = new Date()
 
 result = put("/rest/api/3/issue/${kpi.key}?returnIssue=true")
     .header("Content-Type", "application/json")
     .body([
         fields: [
             (lastMeasuredValueId): measuredValue.toString(),
-            (lastMeasuredOnId): dateTimeFormatter.format(new Date())
+            (lastMeasuredOnId): dateTimeFormatter.format(now)
         ]
     ])
     .asString()
@@ -171,4 +172,55 @@ if(status.equals("Validated") && kpiStatus.equals("Active")) {
     }
 
     logger.info("Escalated KPI ${kpi.key} to process owner")
+
+    // add a comment about escalation
+    result = post("/rest/api/3/issue/${kpi.key}/comment")
+        .header("Content-Type", "application/json")
+        .body([
+            body: [
+                type: "doc",
+                version: 1,
+                content: [
+                    [
+                        type: "paragraph",
+                        content: [
+                            [
+                                type: "text",
+                                text: "Validated measurement of ${measuredValue} recorded on work item ",
+                            ],
+                            [
+                                type: "text",
+                                text: "${issue.key}",
+                                marks: [[
+                                    type: "link",
+                                    attrs: [ href: "/browse/${issue.key}" ]
+                                ]]
+                            ],
+                            [
+                                type: "text",
+                                text: " requires escalation.",
+                            ],
+                        ]
+                    ],
+                    [
+                        type: "paragraph",
+                        content: [
+                            [
+                                type: "text",
+                                text: "Condition of escalation is: ",
+                            ],
+                            [
+                                type: "text",
+                                text: "${escalateCondition}",
+                                marks: [[ type: "strong" ]]
+                            ]
+                        ]
+                    ],
+                ]
+            ]
+        ])
+        .asString()
+
+    if(result.status < 200 || result.status > 204)
+        logger.info("Could not add comment to KPI ${kpi.key} (${result.status})")
 }
