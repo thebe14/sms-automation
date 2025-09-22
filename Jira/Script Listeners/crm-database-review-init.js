@@ -16,7 +16,7 @@ if(summary.toLowerCase().trim() == "test") {
  * @param jql is the JQL query to use to search
  * @param fieldsToFetch is array with Ids of the fields to return, or null to get everything
  * @param maxResults is the maximum number of tickets to return
- * @returns Returns array of tickets (1K at most), null or error
+ * @returns array of tickets (1K at most), null or error
  */
 def findTickets(jql, fieldsToFetch, maxResults = 1000) {
     // find the ticket of 
