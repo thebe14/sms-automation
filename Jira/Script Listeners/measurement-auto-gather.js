@@ -7,6 +7,12 @@
 import java.math.BigDecimal
 import java.util.Date
 import java.text.SimpleDateFormat
+import java.util.regex.Matcher
+
+if(issue == null) {
+    logger.info("No issue")
+    return
+}
 
 def summary = issue.fields['summary'] as String
 if(summary.toLowerCase().trim() == "test") {
@@ -54,14 +60,58 @@ def measuredValueId = customFields.find { it.name == 'Measured value' }?.id?.toS
 def measurementTypeId = customFields.find { it.name == 'Measurement type' }?.id?.toString()
 def measurementQueryId = customFields.find { it.name == 'Measurement query' }?.id?.toString()
 def measurementSumFieldId = customFields.find { it.name == 'Measurement summation field' }?.id?.toString()
+def measurementWebRequestId = customFields.find { it.name == 'Measurement web request' }?.id?.toString()
+def measurementJsonFieldId = customFields.find { it.name == 'Measurement JSON field' }?.id?.toString()
+def measurementRegExId = customFields.find { it.name == 'Measurement regular expression' }?.id?.toString()
 def measurementCommentId = customFields.find { it.name == 'Measurement comment' }?.id?.toString()
 
-def targetValue = null as String
-def measuredValue = null as String
-def measurementType = null as String
-def measurementQuery = null as String
-def measurementSumField = null as String
-def measurementCommentTemplate = null as String
+/***
+ * Fetches member of an object according to a path expression
+ * @param object is the object to get field value from
+ * @param path is a path expresson, such as "field1.fields[0].field3"
+ *        Path expressions "field[0]" and "field.[0]" are equivalent
+ *        If there is an array in the root, use path expressions like "[0].field1.field2"
+ * @returns field value, null on error (e.g. if any field in the path expression does not exist)
+ */
+def resolveObjectPath(object, String path) {
+    if(!object || !path)
+        return null
+
+    Matcher matcher = null
+    def parts = []
+    def tokens = path.tokenize('.')
+    
+    for(def token in tokens) {
+        // split tokens like "field[0]" into two tokens "field" and "[0]"
+        matcher = token =~ /^([a-zA-Z0-9_]+)(\[\d+\])$/
+        if(matcher.find()) {
+            // this is an index into a property that is (supposedly) an array
+            parts.add(matcher.group(1))
+            parts.add(matcher.group(2))
+            continue
+        }
+
+        parts.add(token)
+    }
+
+    def value = parts.inject(object, { obj, prop ->
+        matcher = prop =~ /^\[(\d+)\]$/
+        if(matcher.find()) {
+            // property is an array index
+            prop = matcher.group(1)
+            if(!prop?.isInteger()) {
+                logger.warn("Path expression index <${prop}> is not a valid array index")
+                return null
+            }
+
+            return obj ? obj.getAt(Integer.parseInt(prop)) : null
+        }
+
+        return obj ? obj[prop] : null
+    })
+
+    return value
+}
 
 /***
  * Expand placeholders in a JQL query with actual values from the linked KPI ticket's fields
@@ -224,18 +274,17 @@ if(result.status < 200 || result.status > 204) {
 kpi = result.body as Map
 
 // get target value and measurement configuration
-targetValue = kpi.fields[targetId] as String
-
-measurementType = kpi.fields[measurementTypeId]?.value as String
-measurementQuery = kpi.fields[measurementQueryId] as String
-measurementSumField = kpi.fields[measurementSumFieldId] as String
-measurementCommentTemplate = kpi.fields[measurementCommentId] as String
+def targetValue = kpi.fields[targetId] as String
+def measuredValue = null as String
+def measurementType = kpi.fields[measurementTypeId]?.value as String
+def measurementCommentTemplate = kpi.fields[measurementCommentId] as String
 
 // check if we should auto gather the measurement
 def manualMeasurement = true
 def autoMeasurementFailed = false
 switch(measurementType?.toLowerCase()) {
     case "work item count":
+        def measurementQuery = kpi.fields[measurementQueryId] as String
         autoMeasurementFailed = true
         manualMeasurement = false
         if(null != measurementQuery) {
@@ -250,6 +299,8 @@ switch(measurementType?.toLowerCase()) {
         break
 
     case "work item summation":
+        def measurementQuery = kpi.fields[measurementQueryId] as String
+        def measurementSumField = kpi.fields[measurementSumFieldId] as String
         autoMeasurementFailed = true
         manualMeasurement = false
         if(null != measurementQuery && null != measurementSumField) {
@@ -262,6 +313,28 @@ switch(measurementType?.toLowerCase()) {
             }
         }
         break
+
+    case "web request returning json":
+        def measurementWebRequest = kpi.fields[measurementWebRequestId] as String
+        def measurementJsonField = kpi.fields[measurementJsonFieldId] as String
+        autoMeasurementFailed = true
+        manualMeasurement = false
+        if(null != measurementWebRequest && null != measurementJsonField) {
+            // Fetch JSON and get field from it
+            result = get(measurementWebRequest)
+                .header("Accept", "application/json")
+                .asObject(Object)
+
+            if(result.status >= 200 && result.status <= 204) {
+                def json = result.body
+                measuredValue = resolveObjectPath(json, measurementJsonField)
+                if(null != measuredValue)
+                    autoMeasurementFailed = false
+            }
+        }
+        break
+
+        //def measurementRegEx = kpi.fields[measurementRegExId] as String
 }
 
 // update the "Target value" and "Measured value" fields of the measurement ticket

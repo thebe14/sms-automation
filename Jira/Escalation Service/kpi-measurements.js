@@ -71,8 +71,6 @@ def frequency = kpi.fields[frequencyId]?.value as String
 def nextMeasurement = kpi.fields[nextMeasurementId] as String
 def nextMeasurementDate = null != nextMeasurement ? dateTimeFormatter.parse(nextMeasurement) : null as Date
 
-logger.info("frequency ${frequency}")
-
 // update the "Next measurement" field of the KPI ticket
 if(null != nextMeasurementDate) {
     if(null == frequency)
