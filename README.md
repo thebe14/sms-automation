@@ -15,7 +15,7 @@ deployed, section **Apps**, then navigate to _ScriptRunner_.
 [ScriptRunner for Jira Cloud](https://docs.adaptavist.com/sr4jc/latest/get-started)
 and
 [ScriptRunner for Confluence Cloud](https://docs.adaptavist.com/sr4cc/latest/get-started)
-must be added to the Jira site for these Groovy scripts to function. 
+must be added to the Jira site for these Groovy scripts to function.
 
 > Note that the automations that power the work types (aka ticket types) in the
 > SMS Jira are either implemented with **Jira-native rules** (see the
