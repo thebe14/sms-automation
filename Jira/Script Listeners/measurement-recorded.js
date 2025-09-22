@@ -127,7 +127,7 @@ if(status.equals("Validated") && kpiStatus.equals("Active")) {
     def targetIncluded = escalateCondition.contains("{target}")
     def escalateExpression = targetIncluded ? escalateCondition.replaceAll(/\{target\}/, "${target}") : "${measuredValue} ${escalateCondition}"
 
-    escalateExpression = escalateExpression.replaceAll(/[^\d\.\+\-\*\/\(\)\%\<\>\= \&\|\!]/, "")
+    escalateExpression = escalateExpression.replaceAll(/[^\d\.\+\-\*\/\(\)\%\<\>\= \&\|\!\'\"]/, "")
 
     logger.info("Escalate condition: ${escalateExpression}")
     def escalateNow = evaluate(escalateExpression)
