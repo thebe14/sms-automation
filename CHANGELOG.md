@@ -8,7 +8,8 @@ and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 1.0.3
-- Added auto-escalation of active KPIs when the escalation condition is true on validated Measurement
+- Added auto-escalation of active KPIs to process owner when the escalation condition is true on validated Measurement
+- Added auto-escalation KPIs to SMS owner after being escalated to process owner for longer than configured on the Process SMS work item
 - Automatically escalate KPIs higher to SMS owner after period configured on the Process SMS ticket
 - Moved the init of a Process Review ticket from the workflow transition handler to the script listener for ticket creation
 - Moved the assignment of a Process/Procedure/Policy Review ticket from the workflow transition handler to the script listener for ticket creation
