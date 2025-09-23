@@ -7,9 +7,10 @@
 import java.util.Date
 import java.text.SimpleDateFormat
 
-def summary = issue.fields['summary'] as String
+def summary = issue.fields.summary as String
+def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${ticketType} ${issue.key}")
     return
 }
 
@@ -47,6 +48,9 @@ if(changes.isEmpty()) {
 
 logger.info("Changed ${String.join(', ', changes)} for ${issue.key}")
 
+logger.info("${statusOld} -> ${status}")
+logger.info("${measuredValueOld} -> ${measuredValue}")
+
 // find the KPI ticket linked with inward "is measurement for" relationship
 def links = issue.fields['issuelinks'] as List
 def kpi = null
@@ -60,26 +64,22 @@ for(def link : links) {
     }
 }
 
-if(null == kpi) {
-    logger.info("Measurement ${issue.key} not linked to KPI ticket")
-    return
-}
-
-def result = get("/rest/api/3/issue/${kpi.key}") 
-    .header("Content-Type", "application/json")
-    .asObject(Map)
-
-if(result.status < 200 || result.status > 204) {
-    logger.info("Could not get KPI ${kpi.key} (${result.status})")
-    return
-}
-
-kpi = result.body
-
 def targetId = customFields.find { it.name == 'Target' }?.id?.toString()
 def targetValueId = customFields.find { it.name == 'Target value' }?.id?.toString()
+def result = null;
 
-def target = kpi.fields[targetId] as String
+if(null != kpi) {
+    result = get("/rest/api/3/issue/${kpi.key}?fields=key,${targetId}")
+        .header("Content-Type", "application/json")
+        .asObject(Map)
+
+    if(result.status < 200 || result.status > 204)
+        logger.info("Could not get KPI ${kpi.key} (${result.status})")
+    else
+        kpi = result.body
+}
+
+def target = null != kpi ? kpi.fields[targetId] : null as Number
 
 // store field backups on the ticket
 result = put("/rest/api/3/issue/${issue.key}") 
@@ -87,15 +87,20 @@ result = put("/rest/api/3/issue/${issue.key}")
     .header("Content-Type", "application/json")
     .body([
         fields:[
-            (targetValueId): target,
-            (measuredValueOldId): measuredValue,
             (statusOldId): status,
+            (measuredValueOldId): measuredValue,
+            (targetValueId): null != target ? ((target % 1 != 0) ? target.toString() : target.toLong().toString()) : null,
         ],
     ])
     .asString()
 
 if(result.status < 200 || result.status > 204)
     logger.info("Could not save measurement backup to ${issue.key} (${result.status})")
+
+if(null == kpi) {
+    logger.info("Measurement ${issue.key} not linked to KPI ticket")
+    return
+}
 
 // update the "Last measured value" and "Last measured on" fields of the linked KPI ticket
 def lastMeasuredValueId = customFields.find { it.name == 'Last measured value' }?.id?.toString()
@@ -108,26 +113,28 @@ result = put("/rest/api/3/issue/${kpi.key}?returnIssue=true")
     .header("Content-Type", "application/json")
     .body([
         fields: [
-            (lastMeasuredValueId): measuredValue.toString(),
+            (lastMeasuredValueId): measuredValue,
             (lastMeasuredOnId): dateTimeFormatter.format(now)
         ]
     ])
-    .asString()
+    .asObject(Map)
 
-if(result.status < 200 || result.status > 204)
+if(result.status >= 200 && result.status <= 204)
+    kpi = result.body
+else
     logger.info("Could not update KPI ${kpi.key} (${result.status})")
 
-// check if the KPI should be escalated
-def kpiStatus = kpi.fields.status.name as String
-if(status.equals("Validated") && kpiStatus.equals("Active")) {
-    // already escalated nothing else to do
-
+// check if the KPI can be escalated
+def kpiStatus = kpi.fields.status?.name as String
+if(status.equals("Validated") && null != kpiStatus && kpiStatus.equals("Active")) {
+    // KPI not escalated yet, check if it should be escalated
     def escalateConditionId = customFields.find { it.name == 'Condition of escalation' }?.id?.toString()
     def escalateCondition = kpi.fields[escalateConditionId] as String
     def targetIncluded = escalateCondition.contains("{target}")
-    def escalateExpression = targetIncluded ? escalateCondition.replaceAll(/\{target\}/, "${target}") : "${measuredValue} ${escalateCondition}"
+    def measuredValueExpression = measuredValue.isNumber() ? "${measuredValue}" : "\"${measuredValue}\""
+    def escalateExpression = targetIncluded ? escalateCondition.replaceAll(/\{target\}/, "${target}") : "${measuredValueExpression} ${escalateCondition}"
 
-    escalateExpression = escalateExpression.replaceAll(/[^\d\.\+\-\*\/\(\)\%\<\>\= \&\|\!\'\"]/, "")
+    escalateExpression = escalateExpression.replaceAll(/[^a-zA-Z\d\.\+\-\*\/\(\)\%\<\>\=\&\|\!\'\" ]/, "")
 
     logger.info("Escalate condition: ${escalateExpression}")
     def escalateNow = evaluate(escalateExpression)

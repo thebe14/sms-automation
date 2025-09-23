@@ -8,15 +8,13 @@ import java.math.BigDecimal
 import java.util.Date
 import java.text.SimpleDateFormat
 import java.util.regex.Matcher
+import java.util.regex.Pattern
+import java.util.regex.PatternSyntaxException
 
-if(issue == null) {
-    logger.info("No issue")
-    return
-}
-
-def summary = issue.fields['summary'] as String
+def summary = issue.fields.summary as String
+def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${ticketType} ${issue.key}")
     return
 }
 
@@ -44,26 +42,16 @@ if(null == kpi) {
     return
 }
 
-// get custom fields
-def customFields = get("/rest/api/3/field")
-    .asObject(List)
-    .body
-    .findAll { (it as Map).custom } as List<Map>
+// get all the fields of the linked KPI ticket
+def result = get("/rest/api/3/issue/${kpi.key}")
+    .header("Accept", "application/json")
+    .asObject(Map)
+if(result.status < 200 || result.status > 204) {
+    logger.info("Could not get KPI ${issue.key} (${result.status})")
+    return
+}
 
-// get field values
-def targetId = customFields.find { it.name == 'Target' }?.id?.toString()
-def lastMeasuredValueId = customFields.find { it.name == 'Last measured value' }?.id?.toString()
-def lastMeasuredOnId = customFields.find { it.name == 'Last measured on' }?.id?.toString()
-
-def targetValueId = customFields.find { it.name == 'Target value' }?.id?.toString()
-def measuredValueId = customFields.find { it.name == 'Measured value' }?.id?.toString()
-def measurementTypeId = customFields.find { it.name == 'Measurement type' }?.id?.toString()
-def measurementQueryId = customFields.find { it.name == 'Measurement query' }?.id?.toString()
-def measurementSumFieldId = customFields.find { it.name == 'Measurement summation field' }?.id?.toString()
-def measurementWebRequestId = customFields.find { it.name == 'Measurement web request' }?.id?.toString()
-def measurementJsonFieldId = customFields.find { it.name == 'Measurement JSON field' }?.id?.toString()
-def measurementRegExId = customFields.find { it.name == 'Measurement regular expression' }?.id?.toString()
-def measurementCommentId = customFields.find { it.name == 'Measurement comment' }?.id?.toString()
+kpi = result.body as Map
 
 /***
  * Fetches member of an object according to a path expression
@@ -94,7 +82,7 @@ def resolveObjectPath(object, String path) {
         parts.add(token)
     }
 
-    def value = parts.inject(object, { obj, prop ->
+    return parts.inject(object, { obj, prop ->
         matcher = prop =~ /^\[(\d+)\]$/
         if(matcher.find()) {
             // property is an array index
@@ -109,8 +97,6 @@ def resolveObjectPath(object, String path) {
 
         return obj ? obj[prop] : null
     })
-
-    return value
 }
 
 /***
@@ -262,22 +248,30 @@ def sumTickets(String query, String fieldName, kpi, List<Map> customFields) {
     return response
 }
 
-// get all the fields of the linked KPI ticket
-def result = get("/rest/api/3/issue/${kpi.key}")
-    .header("Accept", "application/json")
-    .asObject(Map)
-if(result.status < 200 || result.status > 204) {
-    logger.info("Could not get KPI ${issue.key} (${result.status})")
-    return
-}
+// get custom fields
+def customFields = get("/rest/api/3/field")
+    .asObject(List)
+    .body
+    .findAll { (it as Map).custom } as List<Map>
 
-kpi = result.body as Map
+// get field values
+def targetId = customFields.find { it.name == 'Target' }?.id?.toString()
+def lastMeasuredValueId = customFields.find { it.name == 'Last measured value' }?.id?.toString()
+def lastMeasuredOnId = customFields.find { it.name == 'Last measured on' }?.id?.toString()
+
+def targetValueId = customFields.find { it.name == 'Target value' }?.id?.toString()
+def measuredValueId = customFields.find { it.name == 'Measured value' }?.id?.toString()
+def measurementTypeId = customFields.find { it.name == 'Measurement type' }?.id?.toString()
+def measurementQueryId = customFields.find { it.name == 'Measurement query' }?.id?.toString()
+def measurementSumFieldId = customFields.find { it.name == 'Measurement summation field' }?.id?.toString()
+def measurementWebRequestId = customFields.find { it.name == 'Measurement web request' }?.id?.toString()
+def measurementJsonFieldId = customFields.find { it.name == 'Measurement JSON field' }?.id?.toString()
+def measurementRegExId = customFields.find { it.name == 'Measurement regular expression' }?.id?.toString()
 
 // get target value and measurement configuration
-def targetValue = kpi.fields[targetId] as String
+def targetValue = kpi.fields[targetId] as Number
 def measuredValue = null as String
 def measurementType = kpi.fields[measurementTypeId]?.value as String
-def measurementCommentTemplate = kpi.fields[measurementCommentId] as String
 
 // check if we should auto gather the measurement
 def manualMeasurement = true
@@ -334,14 +328,54 @@ switch(measurementType?.toLowerCase()) {
         }
         break
 
-        //def measurementRegEx = kpi.fields[measurementRegExId] as String
+    case "web request with regular expression":
+        def measurementWebRequest = kpi.fields[measurementWebRequestId] as String
+        def measurementRegEx = kpi.fields[measurementRegExId] as String
+        autoMeasurementFailed = true
+        manualMeasurement = false
+        if(null != measurementWebRequest && null != measurementRegEx) {
+            // Fetch string and dig in it with a regular expression
+            result = get(measurementWebRequest)
+                .asString()
+
+            if(result.status >= 200 && result.status <= 204) {
+                def text = result.body
+
+                Pattern pattern = null
+                Matcher matcher = null
+                try {
+                    pattern = ~"${measurementRegEx}"
+                    matcher = text =~ pattern
+                }
+                catch(PatternSyntaxException ex) {
+                    logger.warn("Invalid regular expression")
+                    logger.warn(ex.getMessage())
+                    pattern = null
+                    matcher = null
+                }
+
+                if(null != matcher && matcher.find()) {
+                    if(matcher.groupCount() > 0)
+                        measuredValue = matcher.group(1)
+                    else
+                        measuredValue = matcher.group() // the entire matched substring
+                }
+
+                logger.info("measuredValue ${measuredValue}")
+
+                if(null != measuredValue)
+                    autoMeasurementFailed = false
+            }
+        }
+        break
 }
 
 // update the "Target value" and "Measured value" fields of the measurement ticket
 def fields = [:]
 if(null != targetValue) {
-    fields[targetValueId] = targetValue
-    logger.info("Target: ${targetValue}")
+    def targetValueString = (targetValue % 1 != 0) ? targetValue.toString() : targetValue.toLong().toString()
+    fields[targetValueId] = targetValueString
+    logger.info("Target: ${targetValueString}")
 }
 if(null != measuredValue) {
     fields[measuredValueId] = measuredValue.toString()

@@ -4,7 +4,7 @@
 // conditions:
 // ['Process Review'].includes(issue.issueType.name)
 
-def summary = issue.fields['summary'] as String
+def summary = issue.fields.summary as String
 def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
     logger.info("Ignore test ${ticketType} ${issue.key}")
