@@ -4,7 +4,7 @@
 // conditions:
 // ['Customer'].includes(issue.issueType.name)
 
-def summary = issue.fields['summary'] as String
+def summary = issue.fields.summary as String
 def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
     logger.info("Ignore test ${ticketType} ${issue.key}")
@@ -56,7 +56,7 @@ if(null == process)
     return
 
 // store the customer satisfaction review frequency on the customer ticket
-def reviewFrequency = process.fields[reviewFrequencyId]?.value
+def reviewFrequency = process.fields[reviewFrequencyId]?.value as String
 
 def result = put("/rest/api/3/issue/${issue.key}")
     .queryString("overrideScreenSecurity", Boolean.TRUE)

@@ -1,11 +1,12 @@
 // workflow: CRM Customer Workflow
-// on transition: InProgress -> InProgress (Create new contact)
+// on transition: InProgress/Active -> InProgress/Active (Create new contact)
 // run as: Initiating user
 // conditions: true
 
-def summary = issue.fields['summary'] as String
+def summary = issue.fields.summary as String
+def ticketType = issue.fields.issuetype?.name?.toLowerCase()
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issue.fields.issuetype.name.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test ${ticketType} ${issue.key}")
     return
 }
 
@@ -113,4 +114,4 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
     .asString()
 
 if(result.status < 200 || result.status > 204)
-    logger.info("Could not add comment to customer ${issue.key} (${result.status})")
+    logger.info("Could not add comment to ${ticketType} ${issue.key} (${result.status})")
