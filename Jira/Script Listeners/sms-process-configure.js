@@ -12,7 +12,7 @@
 String summary = issue.fields['summary']
 String issueType = issue.fields?.issuetype?.name
 if(summary.toLowerCase().trim() == "test") {
-    logger.info("Ignore test ${issueType.toLowerCase()} ${issue.key}")
+    logger.info("Ignore test process ${issue.key}")
     return
 }
 
