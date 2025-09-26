@@ -1,5 +1,5 @@
 // workflow: Process Workflow
-// on transition: Implementation -> Implementation (Create new procedure)
+// on transition: Implementation -> Implementation (Create new policy)
 // run as: ScriptRunner add-on user
 // conditions: true
 
@@ -88,9 +88,9 @@ def customFields = get("/rest/api/3/field")
 def processOwnerId = customFields.find { it.name == 'Process owner' }?.id?.toString()
 def processHomepageId = customFields.find { it.name == 'Process homepage' }?.id?.toString()
 
-def procedureTitleId = customFields.find { it.name == 'Procedure title' }?.id?.toString()
-def procedureCodeId = customFields.find { it.name == 'Procedure code' }?.id?.toString()
-def procedureHomepageId = customFields.find { it.name == 'Procedure homepage' }?.id?.toString()
+def policyTitleId = customFields.find { it.name == 'Policy title' }?.id?.toString()
+def policyCodeId = customFields.find { it.name == 'Policy code' }?.id?.toString()
+def policyHomepageId = customFields.find { it.name == 'Policy homepage' }?.id?.toString()
 
 // get field values
 def hostname = null
@@ -125,94 +125,93 @@ switch(issueType) {
 }
 
 def processHomepage = issue.fields[processHomepageId] as String
-def procedureTitle = issue.fields[procedureTitleId] as String
-def procedureCode = issue.fields[procedureCodeId] as String
+def policyTitle = issue.fields[policyTitleId] as String
+def policyCode = issue.fields[policyCodeId] as String
 def processOwner = issue.fields[processOwnerId]?.accountId as String
 
-// find the template procedure page
-def templatePage = findPage("Procedure Template")
+// find the template policy page
+def templatePage = findPage("Policy Template")
 if(null == templatePage || templatePage.notFound) {
-    logger.info("Could not find procedure homepage template")
+    logger.info("Could not find [olicy] homepage template")
     return
 }
 
-// determine where to create the homepage for the new procedure
+// determine where to create the homepage for the new policy
 Matcher matcher = processHomepage =~ ~/https\:\/\/(.+)\/wiki\/spaces\/(.+)\/pages\/([0-9a-zA-Z]+)/
 if(matcher.find()) {
     hostname = matcher.group(1)
     spaceKey = matcher.group(2)
     processPageId = matcher.group(3)
 }
-
-def proceduresPageTitle = "${processCode} Procedures"
-def proceduresPage = findPage(proceduresPageTitle)
-if(null == proceduresPage)
+def policiesPageTitle = "${processCode} Policies"
+def policiesPage = findPage(policiesPageTitle)
+if(null == policiesPage)
     return
-if(proceduresPage.notFound) {
-    // this process has no procedures page
-    logger.info("Could not find page <${proceduresPageTitle}>")
+if(policiesPage.notFound) {
+    // this process has no policies page
+    logger.info("Could not find page <${policiesPageTitle}>")
     
-    def templateProcedures = findPage("Procedures Template")
-    if(null == templateProcedures || templateProcedures.notFound) {
-        logger.info("Could not find procedures page template")
+    def templatePolicies = findPage("Policies Template")
+    if(null == templatePolicies || templatePolicies.notFound) {
+        logger.info("Could not find policies page template")
         return
     }
 
     // in the content we got from the template page, replace dummy process references with ones to this process
-    if(null != templateProcedures.content.value)
-        templateProcedures.content.value = templateProcedures.content.value.replaceAll("XXX", "${processCode}")
+    if(null != templatePolicies.content.value)
+        templatePolicies.content.value = templatePolicies.content.value.replaceAll("XXX", "${processCode}")
 
-    // copy procedures page template to the right place
-    proceduresPage = copyPage(templateProcedures, processPageId, proceduresPageTitle)
-    if(null == proceduresPage)
+    // copy policies page template to the right place
+    policiesPage = copyPage(templatePolicies, processPageId, policiesPageTitle)
+    if(null == policiesPage)
         return
 
-    proceduresPage.parentId = processPageId
+    policiesPage.parentId = processPageId
 
-    logger.info("Created new ${processCode} procedures page ${proceduresPage.id}")
+    logger.info("Created new ${processCode} policies page ${policiesPage.id}")
 }
 
-if(proceduresPage.parentId != processPageId)
+if(policiesPage.parentId != processPageId)
     // should be directly under the process homepage
-    logger.warn("Page <${proceduresPageTitle}> not under homepage of process ${processCode}")
+    logger.warn("Page <${policiesPageTitle}> not under homepage of process ${processCode}")
 
-// create new procedure ticket
+// create new policy ticket
 def result = post("/rest/api/3/issue")
     .header("Content-Type", "application/json")
     .body([
         fields:[
             project: [ key: processCode ],
-            issuetype: [ name: "Procedure" ],
-            summary: "${procedureCode} ${procedureTitle}",
+            issuetype: [ name: "Policy" ],
+            summary: "${policyCode} ${policyTitle}",
             assignee: null != processOwner ? [ accountId: processOwner ] : null,
-            (procedureCodeId): procedureCode,
+            (policyCodeId): policyCode,
         ],
     ])
     .asObject(Map)
 
 if(result.status < 200 || result.status >= 300) {
-    logger.info("Could not create procedure for process ${processCode} (${result.status})")
+    logger.info("Could not create policy for process ${processCode} (${result.status})")
     return
 }
 
 def newTicket = result.body as Map
-logger.info("Created procedure ${newTicket.key} for process ${processCode}")
+logger.info("Created policy ${newTicket.key} for process ${processCode}")
 
-// clear the procedure details from the process ticket, so new procedures can be created clean
+// clear the policy details from the process ticket, so new policies can be created clean
 result = put("/rest/api/3/issue/${issue.key}")
     .header("Content-Type", "application/json")
     .body([
         fields:[
-            (procedureTitleId): null,
-            (procedureCodeId): null,
+            (policyTitleId): null,
+            (policyCodeId): null,
         ],
     ])
     .asString()
 
 if(result.status < 200 || result.status >= 300)
-    logger.warn("Could not clear procedure details from process ${processCode} ${issue.key} (${result.status})")
+    logger.warn("Could not clear policy details from process ${processCode} ${issue.key} (${result.status})")
 
-// add a comment about the new procedure that was created
+// add a comment about the new policy that was created
 result = post("/rest/api/3/issue/${issue.key}/comment") 
     .header("Content-Type", "application/json")
     .body([
@@ -224,7 +223,7 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
                 content: [
                     [
                         type: "text",
-                        text: "New procedure ${procedureCode} has been created for this process, see ",
+                        text: "New policy ${policyCode} has been created for this process, see ",
                     ],
                     [
                         type: "text",
@@ -243,30 +242,30 @@ result = post("/rest/api/3/issue/${issue.key}/comment")
 if(result.status < 200 || result.status > 204)
     logger.info("Could not add comment to process ${processCode} ${issue.key} (${result.status})")
 
-// in the content we got from the template page, replace dummy ticket references with ones to new procedure ticket
+// in the content we got from the template page, replace dummy ticket references with ones to new policy ticket
 if(null != templatePage.content.value) {
-    templatePage.content.value = templatePage.content.value.replaceAll("XXX-99115", newTicket.key)
+    templatePage.content.value = templatePage.content.value.replaceAll("XXX-67733", newTicket.key)
     templatePage.content.value = templatePage.content.value.replaceAll("XXX", "${processCode}")
 }
 
-// copy procedure homepage template to the right place
-def newPage = copyPage(templatePage, proceduresPage.id, "${procedureCode} ${procedureTitle}")
+// copy policy homepage template to the right place
+def newPage = copyPage(templatePage, policiesPage.id, "${policyCode} ${policyTitle}")
 if(null == newPage)
     return
 
-logger.info("Created new procedure page ${newPage.id}")
+logger.info("Created new policy page ${newPage.id}")
 
-// store the link to the new page as the homepage of the new procedure
-def procedureHomepage = "https://${hostname}/wiki/spaces/${spaceKey}/${newPage.id}"
+// store the link to the new page as the homepage of the new policy
+def policyHomepage = "https://${hostname}/wiki/spaces/${spaceKey}/${newPage.id}"
 
 result = put("/rest/api/3/issue/${newTicket.key}")
     .header("Content-Type", "application/json")
     .body([
         fields:[
-            (procedureHomepageId): procedureHomepage,
+            (policyHomepageId): policyHomepage,
         ],
     ])
     .asString()
 
 if(result.status < 200 || result.status >= 300)
-    logger.info("Could not update procedure ${newTicket.key} (${result.status})")
+    logger.info("Could not update policy ${newTicket.key} (${result.status})")
