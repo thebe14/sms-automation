@@ -23,8 +23,14 @@ def reviewFrequencyId = customFields.find { it.name == 'Customer satisfaction re
 def nextReviewId = customFields.find { it.name == 'Next review' }?.id?.toString()
 
 // set the date of the next satisfaction review
-def dateFormatter = new SimpleDateFormat("yyyy-MM-dd")
+def nextReview = issue.fields[nextReviewId]?.value as String
 def reviewFrequency = issue.fields[reviewFrequencyId]?.value as String
+
+if(null != nextReview)
+    // next review date already set, do not overwrite
+    return
+
+def dateFormatter = new SimpleDateFormat("yyyy-MM-dd")
 def nextReviewDate = null as Date
 
 if(null != reviewFrequency) {
